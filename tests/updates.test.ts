@@ -10,6 +10,7 @@ import { parseDeployHook } from "../src/lib/updates/service";
 import {
   CHECK_INTERVAL_MS,
   isUpdateCheckFresh,
+  missedDeploySha,
   moreCommitsAvailable,
   UPDATE_PAGE_SIZE,
 } from "../src/lib/updates/shared";
@@ -161,4 +162,29 @@ test("提交数不足一页或刚好取完时都不再显示加载更多", () =>
     moreCommitsAvailable({ loaded: 100, total: 150, lastBatch: 100 }),
     true,
   );
+});
+
+test("部署请求没把站点带到目标提交时才提示，冷却期和已生效的情况都不提示", () => {
+  const requested = "c".repeat(40);
+  const current = "d".repeat(40);
+  const base = {
+    status: "available" as const,
+    currentSha: current,
+    requestedSha: requested,
+    pending: false,
+  };
+  // 冷却期内部署多半还在构建，不下判断。
+  assert.equal(missedDeploySha({ ...base, pending: true }), null);
+  // 冷却结束仍停在旧版本，说明这次请求没生效。
+  assert.equal(missedDeploySha(base), requested);
+  // 站点已经到了目标提交。
+  assert.equal(
+    missedDeploySha({ ...base, currentSha: requested }),
+    null,
+  );
+  // 已是最新或还没检查出结果时都不提示。
+  assert.equal(missedDeploySha({ ...base, status: "current" }), null);
+  assert.equal(missedDeploySha({ ...base, status: "checking" }), null);
+  // 从没请求过部署。
+  assert.equal(missedDeploySha({ ...base, requestedSha: null }), null);
 });

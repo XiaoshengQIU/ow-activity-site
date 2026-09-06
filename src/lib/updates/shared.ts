@@ -50,7 +50,27 @@ export type UpdateCheck = {
   checkedAt: string;
   canDeploy: boolean;
   requestedAt: string | null;
+  /** 上次请求部署的目标提交，且站点至今没到那个版本。 */
+  missedSha: string | null;
 };
+/**
+ * 上一次部署请求有没有把站点带到目标提交。
+ *
+ * 监测的分支和 Deploy Hook 实际部署的分支是两件事，代码无从校验（Hook 的
+ * URL 和响应都不带仓库分支信息）。配错时的表现是：请求成功、站点版本不变、
+ * 更新提示反复出现，管理员看不出原因。这里用已经记下的目标提交回头核对一次。
+ * 冷却期内不判断，那时部署多半还在构建。
+ */
+export function missedDeploySha(input: {
+  status: UpdateCheck["status"];
+  currentSha: string;
+  requestedSha: string | null;
+  pending: boolean;
+}): string | null {
+  if (input.pending || input.status !== "available" || !input.requestedSha)
+    return null;
+  return input.requestedSha === input.currentSha ? null : input.requestedSha;
+}
 export type UpdateSettingsView = {
   repositoryUrl: string;
   branch: string;

@@ -16,6 +16,7 @@ import {
   CHECK_INTERVAL_MS,
   UpdateError,
   isUpdateCheckFresh,
+  missedDeploySha,
   type UpdateCheck,
   type UpdateSettingsView,
 } from "./shared";
@@ -103,6 +104,8 @@ export async function saveUpdateSettings(
       checkedAt: null,
       checkLease: null,
       checkLeaseUntil: null,
+      // 换了来源，旧的部署目标不再有参考意义；冷却时间保留，继续挡住重复触发。
+      ...(sourceChanged ? { deployRequestedSha: null } : {}),
     },
   });
   if (saved.count !== 1) throw new UpdateError("设置已变化，请刷新后重试。");
@@ -140,6 +143,7 @@ function emptyCheck(row: UpdateSettings, currentSha: string): UpdateCheck {
     checkedAt: new Date().toISOString(),
     canDeploy: false,
     requestedAt: null,
+    missedSha: null,
   };
 }
 function withDeployment(
@@ -158,6 +162,12 @@ function withDeployment(
       Boolean(readDeployHook(row, key)) &&
       !pending,
     requestedAt: pending ? row.deployRequestedAt!.toISOString() : null,
+    missedSha: missedDeploySha({
+      status: result.status,
+      currentSha: result.currentSha,
+      requestedSha: row.deployRequestedSha,
+      pending,
+    }),
   };
 }
 function freshCachedCheck(

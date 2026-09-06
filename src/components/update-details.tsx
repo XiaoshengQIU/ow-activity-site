@@ -146,6 +146,13 @@ export function UpdateDetails({
           近期已提交过部署请求，请到 Vercel 查看进度；10 分钟内不会重复触发。
         </Notice>
       ) : null}
+      {result.missedSha && !sent ? (
+        <Notice tone="warning">
+          上次请求部署的是 <code>{result.missedSha.slice(0, 7)}</code>，但站点现在
+          仍停在 <code>{result.currentSha.slice(0, 7)}</code>。如果 Vercel 那边已经
+          构建完成，请确认 Deploy Hook 绑定的分支就是这里监测的分支。
+        </Notice>
+      ) : null}
       {result.status === "available" &&
       !result.canDeploy &&
       !result.requestedAt ? (

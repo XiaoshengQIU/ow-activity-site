@@ -144,6 +144,7 @@ function emptyCheck(row: UpdateSettings, currentSha: string): UpdateCheck {
     canDeploy: false,
     requestedAt: null,
     missedSha: null,
+    verified: false,
   };
 }
 function withDeployment(
@@ -244,9 +245,12 @@ export async function checkForUpdates(
     );
     result.branch = head.branch;
     result.latestSha = head.sha;
+    result.verified = head.verified;
     if (head.sha === currentSha) {
       result.status = "current";
-      result.message = "当前已是最新版本。";
+      result.message = head.verified
+        ? "当前已是最新的通过构建版本。"
+        : "当前已是最新版本。";
     } else {
       const comparison = await compareCommits(
         row.repositoryUrl,
@@ -258,7 +262,9 @@ export async function checkForUpdates(
       Object.assign(result, comparison);
       if (comparison.status === "ahead" && comparison.total > 0) {
         result.status = "available";
-        result.message = `发现 ${comparison.total} 条新提交，是否更新？`;
+        result.message = head.verified
+          ? `发现 ${comparison.total} 条已通过构建的新提交，是否更新？`
+          : `发现 ${comparison.total} 条新提交，是否更新？`;
       } else if (comparison.status === "diverged") {
         result.status = "diverged";
         result.message = "本站与监测分支均有独立提交，请先合并代码后再部署。";
@@ -267,7 +273,9 @@ export async function checkForUpdates(
         result.message =
           comparison.status === "behind"
             ? "本站已包含监测分支的全部提交。"
-            : "当前已是最新版本。";
+            : head.verified
+              ? "当前已是最新的通过构建版本。"
+              : "当前已是最新版本。";
       }
     }
   } catch (error) {

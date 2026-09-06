@@ -59,7 +59,8 @@ test("使用默认分支并固定比较两端 SHA，分页列出每条提交的�
         default_branch: "release/stable",
         private: false,
       });
-    if (requests.length === 2) return Response.json({ sha: head });
+    if (requests.length === 2)
+      return Response.json({ workflow_runs: [{ head_sha: head }] });
     return Response.json({
       status: "ahead",
       ahead_by: 101,
@@ -79,8 +80,13 @@ test("使用默认分支并固定比较两端 SHA，分页列出每条提交的�
   assert.deepEqual(await getRepositoryHead(repo, "", fetcher), {
     sha: head,
     branch: "release/stable",
+    verified: true,
   });
-  assert.ok(requests[1].endsWith("/commits/release%2Fstable"));
+  // 必须带 event=push：来自 fork 的 PR，其 head_branch 也可能叫 main。
+  assert.ok(requests[1].includes("/actions/runs?"));
+  assert.ok(requests[1].includes("branch=release%2Fstable"));
+  assert.ok(requests[1].includes("status=success"));
+  assert.ok(requests[1].includes("event=push"));
   const result = await compareCommits(repo, base, head, 2, fetcher);
   assert.equal(result.total, 101);
   assert.equal(result.commits[0].title, "中文提交标题");
@@ -187,4 +193,36 @@ test("部署请求没把站点带到目标提交时才提示，冷却期和已�
   assert.equal(missedDeploySha({ ...base, status: "checking" }), null);
   // 从没请求过部署。
   assert.equal(missedDeploySha({ ...base, requestedSha: null }), null);
+});
+
+test("没有可用的 Actions 记录时退回分支最新提交", async () => {
+  const requests: string[] = [];
+  const fetcher = async (input: RequestInfo | URL) => {
+    requests.push(String(input));
+    if (requests.length === 1)
+      return Response.json({ default_branch: "main", private: false });
+    // 仓库没开 Actions，或者这个分支还没有成功的推送构建
+    if (requests.length === 2) return Response.json({ workflow_runs: [] });
+    return Response.json({ sha: head });
+  };
+  assert.deepEqual(await getRepositoryHead(repo, "", fetcher), {
+    sha: head,
+    branch: "main",
+    verified: false,
+  });
+  assert.ok(requests[2].endsWith("/commits/main"));
+});
+
+test("Actions 接口报错不影响版本检查，退回分支最新提交", async () => {
+  const requests: string[] = [];
+  const fetcher = async (input: RequestInfo | URL) => {
+    requests.push(String(input));
+    if (requests.length === 1)
+      return Response.json({ default_branch: "main", private: false });
+    if (requests.length === 2) return new Response(null, { status: 500 });
+    return Response.json({ sha: head });
+  };
+  const result = await getRepositoryHead(repo, "", fetcher);
+  assert.equal(result.sha, head);
+  assert.equal(result.verified, false);
 });

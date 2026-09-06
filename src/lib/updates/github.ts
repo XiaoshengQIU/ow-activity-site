@@ -93,6 +93,37 @@ async function githubJson(url: string, fetcher: Fetcher) {
     throw new UpdateError("GitHub 暂时无法完成版本检查，请稍后重试。");
   return response.json();
 }
+const runsSchema = z.object({
+  workflow_runs: z.array(z.object({ head_sha: shaSchema })),
+});
+/**
+ * 分支最新一条提交不一定构建得起来。取最近一次「推送到该分支且成功」的
+ * Actions 运行，把它的提交当作比较目标，就只会提示已经通过检查的版本。
+ *
+ * event=push 不能省：来自 fork 的 Pull Request，其 head_branch 也可能叫
+ * main，不过滤会把 fork 上的提交当成本仓库分支的最新版本。
+ */
+async function latestVerifiedSha(
+  api: string,
+  branch: string,
+  fetcher: Fetcher,
+) {
+  const query = new URLSearchParams({
+    branch,
+    status: "success",
+    event: "push",
+    per_page: "1",
+  });
+  try {
+    const runs = runsSchema.parse(
+      await githubJson(`${api}/actions/runs?${query}`, fetcher),
+    );
+    return runs.workflow_runs[0]?.head_sha ?? "";
+  } catch {
+    // 仓库没有开 Actions、或返回结构不认识时，退回分支最新提交。
+    return "";
+  }
+}
 export async function getRepositoryHead(
   repositoryUrl: string,
   branchInput: string,
@@ -104,6 +135,8 @@ export async function getRepositoryHead(
     .parse(await githubJson(repository.api, fetcher));
   if (metadata.private) throw new UpdateError("目前支持监测公开 GitHub 仓库。");
   const branch = parseBranch(branchInput) || metadata.default_branch;
+  const verified = await latestVerifiedSha(repository.api, branch, fetcher);
+  if (verified) return { branch, sha: verified, verified: true };
   const head = z
     .object({ sha: shaSchema })
     .parse(
@@ -112,7 +145,7 @@ export async function getRepositoryHead(
         fetcher,
       ),
     );
-  return { branch, sha: head.sha };
+  return { branch, sha: head.sha, verified: false };
 }
 export async function compareCommits(
   repositoryUrl: string,

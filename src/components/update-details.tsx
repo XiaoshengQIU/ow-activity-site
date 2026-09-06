@@ -90,6 +90,12 @@ export function UpdateDetails({
         ) : null}
       </p>
       <p className="text-sm leading-6">{result.message}</p>
+      {result.verified ? (
+        <p className="text-xs text-muted">
+          比较目标取自该分支最近一次通过的 GitHub Actions
+          构建，尚未通过检查的提交不会提示更新。
+        </p>
+      ) : null}
       {commits.length ? (
         <>
           <p className="text-xs text-muted">

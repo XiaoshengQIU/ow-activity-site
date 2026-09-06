@@ -52,6 +52,8 @@ export type UpdateCheck = {
   requestedAt: string | null;
   /** 上次请求部署的目标提交，且站点至今没到那个版本。 */
   missedSha: string | null;
+  /** 比较目标来自最近一次通过的 CI，而不是分支上最新的提交。 */
+  verified: boolean;
 };
 /**
  * 上一次部署请求有没有把站点带到目标提交。

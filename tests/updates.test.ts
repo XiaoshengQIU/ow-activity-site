@@ -7,7 +7,12 @@ import {
   parseBranch,
 } from "../src/lib/updates/github";
 import { parseDeployHook } from "../src/lib/updates/service";
-import { CHECK_INTERVAL_MS, isUpdateCheckFresh } from "../src/lib/updates/shared";
+import {
+  CHECK_INTERVAL_MS,
+  isUpdateCheckFresh,
+  moreCommitsAvailable,
+  UPDATE_PAGE_SIZE,
+} from "../src/lib/updates/shared";
 
 const repo = "https://github.com/XiaoshengQIU/ow-activity-site";
 const base = "a".repeat(40),
@@ -115,4 +120,45 @@ test("版本检查缓存以 ISO 时间为准，不受 DateTime 列时区偏移�
   const shiftedColumn = new Date("2026-09-05T17:56:00.000Z");
   assert.equal(isUpdateCheckFresh(shiftedColumn, CHECK_INTERVAL_MS, now), false);
   assert.equal(isUpdateCheckFresh(null, CHECK_INTERVAL_MS, now), false);
+});
+
+test("提交分页在 GitHub 只给回 250 条时收尾，不重复请求同一页", () => {
+  // GitHub compare：每页 100 条，且整个比较最多返回 250 条。
+  const total = 400;
+  const fetchPage = (page: number) => {
+    const start = (page - 1) * UPDATE_PAGE_SIZE;
+    return Math.max(0, Math.min(UPDATE_PAGE_SIZE, Math.min(total, 250) - start));
+  };
+
+  let page = 1;
+  let lastBatch = fetchPage(page);
+  let loaded = lastBatch;
+  const requested = [page];
+  while (moreCommitsAvailable({ loaded, total, lastBatch })) {
+    page += 1;
+    assert.ok(!requested.includes(page), `page ${page} 被重复请求`);
+    requested.push(page);
+    lastBatch = fetchPage(page);
+    loaded += lastBatch;
+    assert.ok(requested.length <= 10, "分页没有收敛");
+  }
+
+  assert.deepEqual(requested, [1, 2, 3]);
+  assert.equal(loaded, 250);
+  assert.equal(moreCommitsAvailable({ loaded, total, lastBatch }), false);
+});
+
+test("提交数不足一页或刚好取完时都不再显示加载更多", () => {
+  assert.equal(
+    moreCommitsAvailable({ loaded: 12, total: 12, lastBatch: 12 }),
+    false,
+  );
+  assert.equal(
+    moreCommitsAvailable({ loaded: 150, total: 150, lastBatch: 50 }),
+    false,
+  );
+  assert.equal(
+    moreCommitsAvailable({ loaded: 100, total: 150, lastBatch: 100 }),
+    true,
+  );
 });

@@ -2,7 +2,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Button, Notice } from "@/components/ui";
-import type { UpdateCheck } from "@/lib/updates/shared";
+import {
+  moreCommitsAvailable,
+  type UpdateCheck,
+  type UpdateCommit,
+} from "@/lib/updates/shared";
 
 export function UpdateDetails({
   result,
@@ -12,6 +16,11 @@ export function UpdateDetails({
   onOpenSettings?: () => void;
 }) {
   const [commits, setCommits] = useState(result.commits);
+  // 页码必须自己记。此前用 commits.length 反推，一旦某页不足 100 条
+  // （比较超过 250 条提交时必然发生），下一次会重复请求同一页：
+  // 提交被追加两遍、key 重复，按钮也再不会消失。
+  const [page, setPage] = useState(1);
+  const [lastBatch, setLastBatch] = useState(result.commits.length);
   const [loading, setLoading] = useState(false);
   const [deploying, setDeploying] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -21,17 +30,21 @@ export function UpdateDetails({
     setLoading(true);
     setMessage("");
     try {
+      const next = page + 1;
       const params = new URLSearchParams({
         sha: result.latestSha,
         revision: String(result.revision),
-        page: String(Math.floor(commits.length / 100) + 1),
+        page: String(next),
       });
       const response = await fetch(`/api/admin/updates?${params}`, {
         cache: "no-store",
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.message);
-      setCommits((current) => [...current, ...data.commits]);
+      const batch: UpdateCommit[] = data.commits ?? [];
+      setPage(next);
+      setLastBatch(batch.length);
+      if (batch.length) setCommits((current) => [...current, ...batch]);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "加载失败，请重试。");
     } finally {
@@ -102,7 +115,11 @@ export function UpdateDetails({
               </li>
             ))}
           </ol>
-          {commits.length < result.total ? (
+          {moreCommitsAvailable({
+            loaded: commits.length,
+            total: result.total,
+            lastBatch,
+          }) ? (
             <Button
               variant="ghost"
               size="sm"

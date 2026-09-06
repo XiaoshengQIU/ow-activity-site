@@ -1,4 +1,4 @@
-import { grantedPermissions } from "@/lib/admin-permissions";
+import { grantedPermissions, hasPermission } from "@/lib/admin-permissions";
 import { getCurrentSession, shouldOpenAdminSetup } from "@/lib/auth";
 import { SiteNav } from "@/components/site-nav";
 import { AdminUpdateNotifier } from "@/components/admin-update-notifier";
@@ -28,7 +28,7 @@ export async function Header({ children }: { children: React.ReactNode }) {
       >
         {children}
       </SiteNav>
-      {isAdmin && session ? (
+      {isAdmin && session && hasPermission(user, "updates") ? (
         <AdminUpdateNotifier
           sessionKey={hashToken(`update-notice:${session.id}`)}
         />

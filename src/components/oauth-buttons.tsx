@@ -1,8 +1,11 @@
 "use client";
+import { ActionButton } from "@/components/action-button";
 import { Button } from "@/components/ui";
 import {
+  canUnlinkOAuth,
   oauthNames,
   type OAuthAvailability,
+  type OAuthEntry,
   type OAuthProvider,
 } from "@/lib/oauth/shared";
 
@@ -50,44 +53,69 @@ export function OAuthButtons({
   providers,
   intent = "login",
   linked = [],
+  hasPassword = false,
+  unlinkAction,
 }: {
   providers: OAuthAvailability[];
-  intent?: "login" | "link";
+  intent?: OAuthEntry;
   linked?: { provider: OAuthProvider; email: string | null }[];
+  hasPassword?: boolean;
+  unlinkAction?: (formData: FormData) => void | Promise<void>;
 }) {
+  const canUnlink = canUnlinkOAuth(hasPassword, linked.length);
   return (
     <div className="grid gap-3">
       <div className="grid gap-3 sm:grid-cols-2">
         {providers.map(({ provider, available }) => {
           const account = linked.find((item) => item.provider === provider);
-          const disabled = !available || Boolean(account);
+          const bindDisabled = !available || Boolean(account);
           return (
             <div key={provider} className="min-w-0">
-              <form method="post" action={`/api/auth/${provider}`}>
-                <input type="hidden" name="intent" value={intent} />
-                <Button
-                  type="submit"
-                  variant="secondary"
-                  isDisabled={disabled}
-                  className={`w-full gap-2 ${disabled ? "grayscale opacity-50" : ""}`}
-                >
-                  {provider === "google" ? <GoogleIcon /> : <GithubIcon />}
-                  {account
-                    ? `${oauthNames[provider]} 已绑定`
-                    : intent === "link"
+              {account && unlinkAction ? (
+                <form action={unlinkAction}>
+                  <input type="hidden" name="provider" value={provider} />
+                  <ActionButton
+                    variant="secondary"
+                    className="w-full gap-2"
+                    isDisabled={!canUnlink}
+                    pendingLabel="解绑中…"
+                  >
+                    {provider === "google" ? <GoogleIcon /> : <GithubIcon />}
+                    解除 {oauthNames[provider]} 绑定
+                  </ActionButton>
+                </form>
+              ) : (
+                <form method="post" action={`/api/auth/${provider}`}>
+                  <input type="hidden" name="intent" value={intent} />
+                  <Button
+                    type="submit"
+                    variant="secondary"
+                    isDisabled={bindDisabled}
+                    className={`w-full gap-2 ${bindDisabled ? "grayscale opacity-50" : ""}`}
+                  >
+                    {provider === "google" ? <GoogleIcon /> : <GithubIcon />}
+                    {intent === "link"
                       ? `绑定 ${oauthNames[provider]}`
                       : `使用 ${oauthNames[provider]} 登录`}
-                </Button>
-              </form>
+                  </Button>
+                </form>
+              )}
               {account?.email ? (
                 <p className="mt-2 break-all text-xs text-muted">
                   {account.email}
                 </p>
+              ) : account ? (
+                <p className="mt-2 text-xs text-muted">已绑定，平台未提供邮箱</p>
               ) : null}
             </div>
           );
         })}
       </div>
+      {intent === "link" && linked.length > 0 && !canUnlink ? (
+        <p className="text-xs leading-6 text-muted">
+          这是目前唯一的登录方式。请先设置密码，或再绑定另一个平台后再解绑。
+        </p>
+      ) : null}
       {providers.some((item) => !item.available) ? (
         <p className="text-xs leading-6 text-muted">
           灰色按钮表示该登录方式暂未开放。

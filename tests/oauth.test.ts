@@ -17,6 +17,11 @@ import {
   type OAuthFlow,
 } from "../src/lib/oauth/security";
 import { runtimeConfig } from "../src/lib/oauth/config";
+import {
+  canUnlinkOAuth,
+  oauthEntryFromIntent,
+  oauthReturnPath,
+} from "../src/lib/oauth/shared";
 
 const key = randomBytes(32).toString("hex");
 const config = {
@@ -62,6 +67,32 @@ test("OAuth 状态绑定浏览器 cookie、平台和有效期", () => {
     readFlow(encrypted, "google", pending.state, key, pending.expiresAt),
   );
   assert.throws(() => readFlow("", "google", pending.state, key));
+  const registering = { ...pending, entry: "register" as const };
+  assert.equal(
+    readFlow(
+      seal(JSON.stringify(registering), "oauth-flow:google", key),
+      "google",
+      registering.state,
+      key,
+    ).entry,
+    "register",
+  );
+});
+
+test("绑定与注册失败回到原页面，解绑须留下密码或另一个第三方账号", () => {
+  assert.equal(oauthEntryFromIntent("link"), "link");
+  assert.equal(oauthEntryFromIntent("register"), "register");
+  assert.equal(oauthEntryFromIntent("login"), "login");
+  assert.equal(oauthEntryFromIntent(null), "login");
+  assert.equal(oauthReturnPath("link"), "/me");
+  assert.equal(oauthReturnPath("register"), "/register");
+  assert.equal(oauthReturnPath("login"), "/login");
+  assert.equal(oauthReturnPath(), "/login");
+  assert.equal(canUnlinkOAuth(false, 1), false);
+  assert.equal(canUnlinkOAuth(true, 1), true);
+  assert.equal(canUnlinkOAuth(false, 2), true);
+  assert.equal(canUnlinkOAuth(true, 2), true);
+  assert.equal(canUnlinkOAuth(false, 0), false);
 });
 
 test("未配置、未启用或密钥无法解密的 OAuth 不可使用", () => {

@@ -16,7 +16,11 @@ import {
   getRuntimeOAuthConfig,
   oauthOrigin,
 } from "@/lib/oauth/server";
-import { isOAuthProvider } from "@/lib/oauth/shared";
+import {
+  isOAuthProvider,
+  oauthEntryFromIntent,
+  oauthReturnPath,
+} from "@/lib/oauth/shared";
 import { matchesSiteRequest } from "@/lib/oauth/request-origin";
 
 export const dynamic = "force-dynamic";
@@ -33,13 +37,15 @@ export async function POST(
     !matchesSiteRequest(request, origin)
   )
     return new Response("Forbidden", { status: 403 });
+  let entry = oauthEntryFromIntent(null);
   const fail = (code: string) =>
-    NextResponse.redirect(`${origin}/login?oauth=${code}`, 303);
+    NextResponse.redirect(`${origin}${oauthReturnPath(entry)}?oauth=${code}`, 303);
   try {
+    const form = await request.formData();
+    entry = oauthEntryFromIntent(form.get("intent"));
+    const linking = entry === "link";
     const config = await getRuntimeOAuthConfig(provider);
     if (!config) return fail("disabled");
-    const form = await request.formData();
-    const linking = form.get("intent") === "link";
     const user = linking ? await getCurrentUser() : null;
     const sessionToken = (await cookies()).get(SESSION_COOKIE)?.value;
     if (linking && (!user || user.status === "BANNED" || !sessionToken))
@@ -54,6 +60,7 @@ export async function POST(
       callbackUrl: origin + callbackPath(provider),
       linkUserId: user?.id ?? null,
       linkSessionHash: linking && sessionToken ? hashToken(sessionToken) : null,
+      entry,
     };
     await prisma.oAuthState.deleteMany({
       where: { expiresAt: { lte: new Date() } },

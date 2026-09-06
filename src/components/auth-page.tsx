@@ -30,7 +30,10 @@ export async function AuthPage({
         {oauthCode && oauthMessages[oauthCode] ? (
           <Notice tone="warning">{oauthMessages[oauthCode]}</Notice>
         ) : null}
-        <OAuthButtons providers={providers} />
+        <OAuthButtons
+          providers={providers}
+          intent={isLogin ? "login" : "register"}
+        />
         <div className="flex items-center gap-3 text-sm text-muted">
           <span className="h-px flex-1 bg-separator" />
           或使用用户名和密码

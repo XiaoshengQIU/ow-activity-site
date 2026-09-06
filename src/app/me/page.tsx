@@ -65,8 +65,23 @@ export default async function MePage({
       <PageHeading title="个人中心" />
       {typeof query.oauth === "string" && oauthMessages[query.oauth] ? (
         <div className="mb-5">
-          <Notice tone={query.oauth === "linked" ? "success" : "warning"}>
+          <Notice
+            tone={
+              query.oauth === "linked" || query.oauth === "unlinked"
+                ? "success"
+                : "warning"
+            }
+          >
             {oauthMessages[query.oauth]}
+          </Notice>
+        </div>
+      ) : null}
+      {query.password === "set" || query.password === "changed" ? (
+        <div className="mb-5">
+          <Notice tone="success">
+            {query.password === "set"
+              ? "密码已设置，之后可以用用户名和密码登录。"
+              : "密码已更新。"}
           </Notice>
         </div>
       ) : null}
@@ -74,7 +89,7 @@ export default async function MePage({
         <Link href="#public-profile">公开资料</Link>
         <Link href="#private-profile">私密资料</Link>
         <Link href="#my-activities">我的报名</Link>
-        <Link href="#account-security">登录方式</Link>
+        <Link href="#account-security">账号安全</Link>
       </nav>
       <div className="profile-layout">
         <aside className="grid gap-4">

@@ -6,9 +6,10 @@ import { Client } from "pg";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
 import {
-  finishOAuthAccount,
   consumeOAuthState,
+  finishOAuthAccount,
   OAuthError,
+  unlinkOAuthAccount,
 } from "../src/lib/oauth/accounts";
 import {
   oauthAvailability,
@@ -160,12 +161,26 @@ test("OAuth 并发首次登录不重复建号，新账号仍待审核，邮箱�
     const changedName = await finishOAuthAccount(db, "google", 1, {
       ...identity,
       name: "改名后的用户",
+      email: "newer@example.com",
     });
     assert.equal(changedName.user.id, user.id);
     assert.equal(
       (await db.profile.findUniqueOrThrow({ where: { userId: user.id } }))
         .displayName,
       identity.name,
+    );
+    assert.equal(
+      (
+        await db.oAuthAccount.findUniqueOrThrow({
+          where: {
+            provider_providerAccountId: {
+              provider: "google",
+              providerAccountId: identity.accountId,
+            },
+          },
+        })
+      ).email,
+      "newer@example.com",
     );
     await db.user.update({
       where: { id: user.id },
@@ -279,5 +294,54 @@ test("OAuth state 只能消费一次，并发回调与过期请求不能复用",
       },
     });
     await assert.rejects(consumeOAuthState(db, flow), OAuthError);
+  });
+});
+
+test("解绑须保留最后一种登录方式，解绑后原平台账号可以绑到别人", async () => {
+  await withDatabase(async (db) => {
+    await saveOAuthConfig(db, config, "admin", key);
+    await saveOAuthConfig(db, { ...config, provider: "github" }, "admin", key);
+    const created = await finishOAuthAccount(db, "google", 1, identity);
+    await assert.rejects(
+      unlinkOAuthAccount(db, created.user.id, "google"),
+      (error: unknown) => error instanceof OAuthError && error.code === "last",
+    );
+    await db.user.update({
+      where: { id: created.user.id },
+      data: { passwordHash: "set" },
+    });
+    await unlinkOAuthAccount(db, created.user.id, "google");
+    assert.equal(
+      await db.oAuthAccount.count({ where: { userId: created.user.id } }),
+      0,
+    );
+    const other = await db.user.create({
+      data: { username: "other", passwordHash: "other" },
+    });
+    assert.equal(
+      (await finishOAuthAccount(db, "google", 1, identity, other.id)).user.id,
+      other.id,
+    );
+    await finishOAuthAccount(
+      db,
+      "github",
+      1,
+      { ...identity, accountId: "gh-1", email: "gh@example.com" },
+      other.id,
+    );
+    await db.user.update({
+      where: { id: other.id },
+      data: { passwordHash: null },
+    });
+    await unlinkOAuthAccount(db, other.id, "google");
+    await assert.rejects(
+      unlinkOAuthAccount(db, other.id, "github"),
+      (error: unknown) => error instanceof OAuthError && error.code === "last",
+    );
+    await assert.rejects(
+      unlinkOAuthAccount(db, other.id, "google"),
+      (error: unknown) =>
+        error instanceof OAuthError && error.code === "missing",
+    );
   });
 });

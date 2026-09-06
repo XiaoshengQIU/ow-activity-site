@@ -68,6 +68,7 @@ export const flowSchema = z.object({
   callbackUrl: z.string().url(),
   linkUserId: z.string().nullable(),
   linkSessionHash: z.string().nullable(),
+  entry: z.enum(["login", "register", "link"]).optional(),
 });
 export type OAuthFlow = z.infer<typeof flowSchema>;
 export function readFlow(

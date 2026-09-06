@@ -2,10 +2,17 @@ import { randomBytes } from "node:crypto";
 import type { PrismaClient } from "@/generated/prisma/client";
 import type { OAuthIdentity } from "./providers";
 import { hashToken, type OAuthFlow } from "./security";
-import type { OAuthProvider } from "./shared";
+import { canUnlinkOAuth, type OAuthProvider } from "./shared";
 export class OAuthError extends Error {
   constructor(
-    public code: "expired" | "disabled" | "banned" | "conflict" | "session",
+    public code:
+      | "expired"
+      | "disabled"
+      | "banned"
+      | "conflict"
+      | "session"
+      | "last"
+      | "missing",
   ) {
     super(code);
   }
@@ -46,6 +53,12 @@ export async function finishOAuthAccount(
       if (linkUserId && account.userId !== linkUserId)
         throw new OAuthError("conflict");
       if (account.user.status === "BANNED") throw new OAuthError("banned");
+      if (account.email !== identity.email) {
+        await tx.oAuthAccount.update({
+          where: { id: account.id },
+          data: { email: identity.email },
+        });
+      }
       return {
         user: { id: account.user.id, role: account.user.role },
         created: false,
@@ -96,5 +109,30 @@ export async function finishOAuthAccount(
       select: { id: true, role: true },
     });
     return { user, created: true };
+  });
+}
+
+export async function unlinkOAuthAccount(
+  db: PrismaClient,
+  userId: string,
+  provider: OAuthProvider,
+) {
+  return db.$transaction(async (tx) => {
+    const locked = await tx.$queryRaw<
+      Array<{ passwordHash: string | null; status: string }>
+    >`SELECT "passwordHash", "status" FROM "User" WHERE "id" = ${userId} FOR UPDATE`;
+    const user = locked[0];
+    if (!user || user.status === "BANNED") throw new OAuthError("session");
+    const linked = await tx.oAuthAccount.findMany({
+      where: { userId },
+      select: { provider: true },
+    });
+    if (!linked.some((item) => item.provider === provider))
+      throw new OAuthError("missing");
+    if (!canUnlinkOAuth(Boolean(user.passwordHash), linked.length))
+      throw new OAuthError("last");
+    await tx.oAuthAccount.delete({
+      where: { userId_provider: { userId, provider } },
+    });
   });
 }

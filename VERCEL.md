@@ -62,7 +62,7 @@ npm run db:seed
 1. 在 Vercel Production 环境添加 Secret `OAUTH_ENCRYPTION_KEY`，使用 32 字节随机值的十六进制编码（64 字符）。可以运行 `node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"` 生成，设置后重新部署。不要把该值提交到 Git。
 2. 管理员登录 `/admin/oauth`，按页面链接分别创建 [Google Web 应用 OAuth 客户端](https://developers.google.com/identity/openid-connect/openid-connect#settingup) 和 [GitHub OAuth App](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app)。将后台显示的完整回调地址填入对应平台。
 3. 在后台填写各自的 Client ID、Client Secret，勾选“启用”并保存。两平台默认关闭，未填写完整时无法启用；保存后无需重新部署。
-4. 在登录页使用相应按钮。已有账号应先登录个人中心，绑定第三方账号后再用一键登录，避免另建账号。新注册用户仍需管理员审核。
+4. 在登录页使用相应按钮。已有账号应先登录个人中心，绑定第三方账号后再用一键登录，避免另建账号。第三方注册的账号可在个人中心设置密码后再解绑。新注册用户仍需管理员审核。
 
 Google 应用处于测试状态时，需在 Google 控制台添加允许登录的测试用户。Client Secret 保存后不会回显，留空保留原值；更换 Client ID 时也需填写新的 Client Secret。
 

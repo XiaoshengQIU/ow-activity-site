@@ -20,7 +20,7 @@ import {
   getRuntimeOAuthConfig,
   oauthOrigin,
 } from "@/lib/oauth/server";
-import { isOAuthProvider } from "@/lib/oauth/shared";
+import { isOAuthProvider, oauthReturnPath } from "@/lib/oauth/shared";
 import { matchesSiteRequest } from "@/lib/oauth/request-origin";
 
 export const dynamic = "force-dynamic";
@@ -46,7 +46,7 @@ export async function GET(
     });
     return response;
   };
-  let flow: OAuthFlow;
+  let flow: OAuthFlow | undefined;
   try {
     flow = readFlow(
       cookieStore.get(flowCookieName(provider))?.value ?? "",
@@ -61,9 +61,16 @@ export async function GET(
       throw new OAuthError("expired");
     await consumeOAuthState(prisma, flow);
   } catch {
-    return respond("/login?oauth=expired");
+    const loggedIn = Boolean(await getCurrentUser());
+    const path =
+      flow?.linkUserId || flow?.entry === "link" || loggedIn
+        ? "/me"
+        : oauthReturnPath(flow?.entry);
+    return respond(`${path}?oauth=expired`);
   }
-  const failurePath = flow.linkUserId ? "/me" : "/login";
+  const failurePath = flow.linkUserId
+    ? "/me"
+    : oauthReturnPath(flow.entry);
   if (request.nextUrl.searchParams.has("error"))
     return respond(`${failurePath}?oauth=cancelled`);
   try {

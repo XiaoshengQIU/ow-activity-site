@@ -28,6 +28,15 @@ import { articleEditorExtensions } from "@/lib/article-editor-extensions";
 import { safeArticleUrl } from "@/lib/article-input";
 import { InputField, Notice } from "@/components/ui";
 import { uploadSiteAssetAction } from "@/app/admin/customize/actions";
+import { shrinkForUpload } from "@/lib/image-downscale";
+
+// 只认图片文件。剪贴板里同时有富文本和图片时，浏览器只在真正复制了图片
+// （截图、右键复制图片）的情况下才会填 files，复制网页片段不会走到这里。
+function imageFiles(data: DataTransfer | null) {
+  return Array.from(data?.files ?? []).filter((file) =>
+    file.type.startsWith("image/"),
+  );
+}
 
 export function ArticleRichEditor({
   initialValue,
@@ -46,6 +55,9 @@ export function ArticleRichEditor({
   const [error, setError] = useState("");
   const [authRequired, setAuthRequired] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  // editorProps 在 useEditor 里一次成型，而 upload 依赖 editor 本身，
+  // 用 ref 中转拿到每次渲染后最新的那个。
+  const uploadRef = useRef<(files: File[], at?: number) => void>(() => {});
   const editor = useEditor({
     extensions: articleEditorExtensions,
     content: initialValue,
@@ -57,6 +69,26 @@ export function ArticleRichEditor({
         role: "textbox",
         "aria-label": "文章正文",
         "aria-multiline": "true",
+      },
+      // 截图和图片文件直接粘进正文，走和工具栏上传同一条链路。
+      handlePaste: (_view, event) => {
+        const files = imageFiles(event.clipboardData);
+        if (!files.length) return false;
+        event.preventDefault();
+        uploadRef.current(files);
+        return true;
+      },
+      // 拖进来的图片插在落点，而不是原来的光标处。
+      handleDrop: (view, event, _slice, moved) => {
+        if (moved) return false;
+        const files = imageFiles(event.dataTransfer);
+        if (!files.length) return false;
+        event.preventDefault();
+        uploadRef.current(
+          files,
+          view.posAtCoords({ left: event.clientX, top: event.clientY })?.pos,
+        );
+        return true;
       },
     },
     onUpdate: ({ editor }) => onChange(editor.getMarkdown()),
@@ -83,9 +115,48 @@ export function ArticleRichEditor({
           }
         : null,
   });
+  async function upload(files: File[], at?: number) {
+    if (!editor || !files.length || disabled) return;
+    setError("");
+    setAuthRequired(false);
+    onUploadChange(true);
+    // 拖拽的第一张插在落点，其余顺着光标往后排。
+    let position = at;
+    try {
+      for (const file of files) {
+        const data = new FormData();
+        data.set("file", await shrinkForUpload(file));
+        const result = await uploadSiteAssetAction(data);
+        if (!result.url) {
+          setError(result.error || "上传失败。");
+          setAuthRequired(result.authRequired ?? false);
+          break;
+        }
+        const chain = editor.chain().focus();
+        if (position !== undefined) chain.setTextSelection(position);
+        chain
+          .setImage({
+            src: result.url,
+            alt: file.name.replace(/\.[^.]+$/, ""),
+          })
+          .run();
+        position = undefined;
+      }
+    } catch {
+      setError("上传失败，请检查网络后重试。");
+    } finally {
+      onUploadChange(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
   useEffect(() => {
     editor?.setEditable(!disabled, false);
   }, [editor, disabled]);
+  // editorProps 里的粘贴/拖拽处理拿不到后面定义的 upload，
+  // 每次渲染后同步一次，避免闭包里留着旧的 disabled 和 editor。
+  useEffect(() => {
+    uploadRef.current = (files, at) => void upload(files, at);
+  });
   if (!editor)
     return (
       <div className="editor-loading" role="status">
@@ -125,32 +196,6 @@ export function ArticleRichEditor({
         .setLink({ href: value })
         .run();
     setDialog(null);
-  }
-  async function upload(file?: File) {
-    if (!file || !editor) return;
-    setError("");
-    setAuthRequired(false);
-    onUploadChange(true);
-    try {
-      const data = new FormData();
-      data.set("file", file);
-      const result = await uploadSiteAssetAction(data);
-      if (!result.url) {
-        setError(result.error || "上传失败。");
-        setAuthRequired(result.authRequired ?? false);
-        return;
-      }
-      editor
-        .chain()
-        .focus()
-        .setImage({ src: result.url, alt: file.name.replace(/\.[^.]+$/, "") })
-        .run();
-    } catch {
-      setError("上传失败，请检查网络后重试。");
-    } finally {
-      onUploadChange(false);
-      if (fileRef.current) fileRef.current.value = "";
-    }
   }
   const buttons = [
     {
@@ -393,7 +438,7 @@ export function ArticleRichEditor({
         type="file"
         hidden
         accept="image/png,image/jpeg,image/webp,image/gif"
-        onChange={(event) => void upload(event.target.files?.[0])}
+        onChange={(event) => void upload(Array.from(event.target.files ?? []))}
       />
       <Modal.Backdrop
         isOpen={dialog !== null}

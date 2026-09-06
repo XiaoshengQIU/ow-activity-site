@@ -790,7 +790,7 @@ export function ArticleEditor({
             <span>
               {uploading
                 ? "正在上传图片…"
-                : "支持 Markdown 快捷输入 · 图片最大 2 MB"}
+                : "支持 Markdown 快捷输入 · 图片可直接粘贴或拖入，过大会自动压缩"}
             </span>
             <span>正文最多 10 万字符</span>
           </div>

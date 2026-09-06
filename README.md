@@ -22,7 +22,7 @@ curl -fsSL https://raw.githubusercontent.com/Uniseem/ow-activity-site/main/scrip
 
 推到 `main` 或开 Pull Request 时，GitHub Actions 在 Ubuntu 上跑单测，并构建 Docker 的 `runner` / `migrate` 镜像。只有推到 `main` 才会把镜像送到 `ghcr.io/uniseem/ow-activity-site`（标签为提交 SHA 和 `main`）。VPS 安装脚本和 `compose.yml` 仍在目标机本地构建，不拉这个仓库镜像。
 
-正式站点请用 Vercel。`vercel.json` 已关闭 Git 自动发布，需要发布时在控制台手动 Deploy，或使用 CLI / Deploy Hook。不要再走 Cloudflare Workers。
+正式站点请用 Vercel。`vercel.json` 已关闭 Git 自动发布，需要发布时在控制台手动 Deploy，或使用 `npm run deploy:prod`（带上上游 main 的 commit）。后台一键更新依赖 Deploy Hook，应绑定上游生产分支。不要再走 Cloudflare Workers。
 
 ## 架构
 
@@ -131,11 +131,11 @@ npm run dev
 
 管理员登录后，页面会主动检查 GitHub；登录期间每 5 分钟检查一次。发现当前部署之后的新提交时弹出更新提示，每条 commit 显示一行首行说明，超过 100 条可继续加载。普通用户不会触发检查或看到更新信息。“稍后再说”只对本次登录有效，下一次登录或出现新的提交时会再次提示。
 
-在 **后台 → 版本更新** 设置公开 GitHub 仓库链接，默认为 `https://github.com/Uniseem/ow-activity-site`；分支留空表示默认分支。检查以构建时固定的 commit SHA 为基准，部署请求、关闭提醒和保存配置都不会推进版本号。无法比较的仓库、分叉历史和网络失败会显示实际原因。
+在 **后台 → 版本更新** 设置公开 GitHub 仓库链接，默认为实际上游 `https://github.com/XiaoshengQIU/ow-activity-site`；分支留空表示默认分支。检查以构建时固定的 commit SHA 为基准，部署请求、关闭提醒和保存配置都不会推进版本号。无法比较的仓库、分叉历史和网络失败会显示实际原因。
 
-管理员可以填写 Vercel Deploy Hook，之后在提示中确认更新以触发生产部署。Hook 使用 `OAUTH_ENCRYPTION_KEY` 加密保存且不回显；未配置时仍提示更新，但无法触发部署。更换仓库或分支时需重新填写对应 Hook。Vercel 接受请求只表示开始部署，部署成功并刷新页面后才会读取新版本。多位管理员同时确认只会发出一个部署请求，10 分钟内防止重复触发。
+管理员可以填写 Vercel Deploy Hook，之后在提示中确认更新以触发生产部署。Hook 使用 `OAUTH_ENCRYPTION_KEY` 加密保存且不回显；未配置时仍提示更新，但无法触发部署。更换仓库或分支时需重新填写对应 Hook。Vercel 接受请求只表示开始部署，部署成功并刷新页面后才会读取新版本。当前构建若没有 `APP_GIT_COMMIT_SHA`，后台无法比较版本，也不会放出一键更新。多位管理员同时确认只会发出一个部署请求，10 分钟内防止重复触发。
 
-Deploy Hook 只部署其绑定的仓库分支，不会自动合并上游仓库；监测上游时需先同步代码。详细设置见 [Vercel 部署说明](./VERCEL.md)。`npm run test:updates` 使用 `UPDATE_TEST_DATABASE_URL` 在独立临时 schema 验证缓存、并发、配置及部署流程，外部部署请求使用模拟响应。
+本站从上游仓库部署。一键更新的 Hook 应绑定上游生产分支；fork 上的提交先合进上游，后台才会提示更新。详细设置见 [Vercel 部署说明](./VERCEL.md)。`npm run test:updates` 使用 `UPDATE_TEST_DATABASE_URL` 在独立临时 schema 验证缓存、并发、配置及部署流程，外部部署请求使用模拟响应。
 
 ## 环境变量
 

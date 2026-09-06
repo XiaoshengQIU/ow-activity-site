@@ -21,3 +21,12 @@ export function matchesSiteRequest(
     return false;
   }
 }
+export function isSameSitePost(
+  request: Pick<Request, "headers" | "url">,
+  configuredOrigin: string,
+) {
+  return (
+    request.headers.get("origin") === configuredOrigin &&
+    matchesSiteRequest(request, configuredOrigin)
+  );
+}

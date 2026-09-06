@@ -93,6 +93,13 @@ export function UpdateSettingsForm({
           </Button>
         </div>
         {error ? <Notice tone="warning">{error}</Notice> : null}
+        {!currentSha ? (
+          <Notice tone="warning">
+            当前构建没有版本号，无法列出和部署更新。用 CLI
+            发布时请传入本次 commit，例如{" "}
+            <code>npm run deploy:prod</code>。
+          </Notice>
+        ) : null}
         {dirty ? (
           <p className="text-sm text-muted">
             更新来源有未保存的修改，保存后可重新检查。
@@ -143,7 +150,7 @@ export function UpdateSettingsForm({
                 value={repository}
                 onChange={(event) => setRepository(event.target.value)}
                 maxLength={300}
-                description="支持公开仓库，填写仓库首页链接。"
+                description="填写实际出站的公开仓库。默认是上游 XiaoshengQIU/ow-activity-site。"
               />
               <div className="flex justify-end">
                 <Button
@@ -189,10 +196,12 @@ export function UpdateSettingsForm({
                 <div className="admin-disclosure-body grid gap-3 text-sm leading-6 text-muted">
                   <p>
                     在 Vercel 项目的 Settings → Git → Deploy Hooks
-                    中创建生产分支的 Hook，复制到上方。Hook
-                    会部署它绑定的仓库和分支。
+                    中创建上游生产分支的 Hook，复制到上方。Hook
+                    必须绑定到实际出站的那个仓库和分支。
                   </p>
-                  <p>监测上游仓库时，需要先将改动同步到本站部署仓库。</p>
+                  <p>
+                    本站从上游仓库部署。fork 上的提交要先合进上游，这里才会看成更新。
+                  </p>
                   <a
                     href="https://vercel.com/docs/deploy-hooks"
                     target="_blank"

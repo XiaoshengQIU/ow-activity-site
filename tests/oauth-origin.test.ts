@@ -1,6 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { matchesSiteRequest } from "../src/lib/oauth/request-origin";
+import {
+  isSameSitePost,
+  matchesSiteRequest,
+} from "../src/lib/oauth/request-origin";
 
 const site = "https://ow.example.com";
 const proxyRequest = (headers: Record<string, string>) => ({
@@ -26,4 +29,34 @@ test("OAuth 拒绝其他域名、降级协议和有歧义的代理头", () => {
   for (const protocol of ["http", "https,http", "javascript"]) {
     assert.equal(matchesSiteRequest(proxyRequest({ host: "ow.example.com", "x-forwarded-proto": protocol }), site), false);
   }
+});
+
+test("后台更新请求按公开域名校验 Origin，不跟内部部署地址比", () => {
+  const browser = {
+    url: "https://ow-activity-site-2j8m96nqx-oasis-49e4.vercel.app/api/admin/updates",
+    headers: new Headers({
+      origin: site,
+      host: "ow.example.com",
+      "x-forwarded-proto": "https",
+    }),
+  };
+  assert.equal(isSameSitePost(browser, site), true);
+  assert.equal(
+    isSameSitePost(
+      {
+        ...browser,
+        headers: new Headers({
+          origin: "https://ow-activity-site-2j8m96nqx-oasis-49e4.vercel.app",
+          host: "ow.example.com",
+          "x-forwarded-proto": "https",
+        }),
+      },
+      site,
+    ),
+    false,
+  );
+  assert.equal(
+    isSameSitePost({ url: `${site}/api/admin/updates`, headers: new Headers() }, site),
+    false,
+  );
 });

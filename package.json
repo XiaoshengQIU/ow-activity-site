@@ -7,6 +7,7 @@
     "build": "npm run db:generate && next build",
     "start": "next start",
     "vercel-build": "npm run db:deploy && npm run build",
+    "deploy:prod": "node scripts/vercel-prod.mjs",
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "node --import tsx --test tests/*.test.ts tests/*.test.tsx",

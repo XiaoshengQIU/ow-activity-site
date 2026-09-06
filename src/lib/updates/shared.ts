@@ -1,4 +1,5 @@
-export const DEFAULT_REPOSITORY = "https://github.com/Uniseem/ow-activity-site";
+export const DEFAULT_REPOSITORY =
+  "https://github.com/XiaoshengQIU/ow-activity-site";
 export const CHECK_INTERVAL_MS = 5 * 60 * 1000;
 export function isUpdateCheckFresh(
   checkedAt: string | Date | null | undefined,

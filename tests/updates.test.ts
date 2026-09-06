@@ -9,7 +9,7 @@ import {
 import { parseDeployHook } from "../src/lib/updates/service";
 import { CHECK_INTERVAL_MS, isUpdateCheckFresh } from "../src/lib/updates/shared";
 
-const repo = "https://github.com/Uniseem/ow-activity-site";
+const repo = "https://github.com/XiaoshengQIU/ow-activity-site";
 const base = "a".repeat(40),
   head = "b".repeat(40);
 test("更新仓库与部署 Hook 严格限定官方 HTTPS 地址，拒绝凭据、跳转与任意主机", () => {

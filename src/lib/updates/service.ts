@@ -391,9 +391,12 @@ export async function requestDeployment(
     );
   }
   const body = await response.json().catch(() => null);
+  const jobId = body?.job?.id;
+  const state = body?.job?.state;
   if (
-    !body?.job?.id ||
-    !["PENDING", "RUNNING", "QUEUED"].includes(body?.job?.state)
+    !jobId ||
+    (state != null &&
+      !["PENDING", "RUNNING", "QUEUED", "READY"].includes(state))
   )
     throw new UpdateError(
       "Vercel 返回的部署状态不明确，请到 Vercel 确认进度。",

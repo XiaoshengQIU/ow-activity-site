@@ -177,7 +177,7 @@ model OAuthState {
 
 model UpdateSettings {
   id                  String    @id
-  repositoryUrl       String    @default("https://github.com/Uniseem/ow-activity-site")
+  repositoryUrl       String    @default("https://github.com/XiaoshengQIU/ow-activity-site")
   branch              String    @default("")
   encryptedDeployHook String?
   revision            Int       @default(0)

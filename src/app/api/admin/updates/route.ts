@@ -9,6 +9,8 @@ import {
 import { UpdateError } from "@/lib/updates/shared";
 import { z } from "zod";
 import { shaSchema } from "@/lib/updates/github";
+import { isSameSitePost } from "@/lib/oauth/request-origin";
+import { oauthOrigin } from "@/lib/oauth/server";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -63,7 +65,8 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const failure = await denied();
   if (failure) return failure;
-  if (request.headers.get("origin") !== new URL(request.url).origin)
+  const origin = oauthOrigin(request.url);
+  if (!isSameSitePost(request, origin))
     return json({ message: "请求来源不正确。" }, 403);
   const input = z
     .object({ sha: shaSchema, revision: z.number().int().nonnegative() })

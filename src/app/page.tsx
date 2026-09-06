@@ -59,7 +59,8 @@ async function HomeEvents() {
   if (!upcoming.length)
     return (
       <Card className="home-empty">
-        <p>暂无近期活动。</p>
+        <p className="home-empty-title">还没有排上活动</p>
+        <p>下一场排定后会出现在这里，也可以先去看看往期活动。</p>
       </Card>
     );
   return (
@@ -80,7 +81,8 @@ async function HomeArticles() {
   if (!articles.length)
     return (
       <Card className="home-empty">
-        <p>暂无文章。</p>
+        <p className="home-empty-title">还没有发布文章</p>
+        <p>规则说明、活动回顾和新人指南都会发在这里。</p>
       </Card>
     );
   return (
@@ -131,6 +133,7 @@ export default async function Home() {
     <main className="page-shell community-home">
       <section className="home-intro" aria-labelledby="welcome-title">
         <div className="home-intro-copy">
+          <p className="home-eyebrow">上海交大 · 守望先锋玩家社区</p>
           <h1 id="welcome-title">
             <span>{t("home.title1")}</span>
             <span>{t("home.title2")}</span>

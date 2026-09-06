@@ -2,6 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { prisma, isDatabaseConfigured } from "@/lib/prisma";
 import { publicArticleWhere } from "@/lib/article-service";
+import { demoArticles } from "@/lib/demo-data";
 
 export const articleCardSelect = {
   id: true,
@@ -12,7 +13,7 @@ export const articleCardSelect = {
   author: { select: { profile: { select: { displayName: true } } } },
 } as const;
 export const getLatestArticles = cache(async (take = 3) => {
-  if (!isDatabaseConfigured()) return [];
+  if (!isDatabaseConfigured()) return demoArticles.slice(0, take);
   return prisma.article.findMany({
     where: publicArticleWhere,
     orderBy: [{ publishedAt: "desc" }, { id: "desc" }],

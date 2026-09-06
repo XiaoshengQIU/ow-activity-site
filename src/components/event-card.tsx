@@ -37,6 +37,10 @@ export function EventCard({
         aria-hidden="true"
       >
         <SiteCover src={event.coverUrl} alt="" />
+        {/* 没有封面时顶上来的装饰图块，CSS 在有 img 时隐藏它。 */}
+        <span className="card-tile" data-type={event.type}>
+          <span className="card-tile-glyph">{eventTypeLabel(event)}</span>
+        </span>
       </Link>
       <div className="event-card-copy cover-glass-panel">
         <div className="event-card-header">
@@ -55,9 +59,11 @@ export function EventCard({
             <h3 className="event-card-title">
               <Link href={href}>{event.title}</Link>
             </h3>
-            <p className="event-card-description mt-2 line-clamp-2 text-sm leading-6">
-              {event.description}
-            </p>
+            {variant === "compact" ? null : (
+              <p className="event-card-description mt-2 line-clamp-2 text-sm leading-6">
+                {event.description}
+              </p>
+            )}
           </div>
           <div className="event-card-footer">
             <time dateTime={shanghaiDateValue(event.startTime)}>

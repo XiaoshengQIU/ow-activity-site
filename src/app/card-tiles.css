@@ -1,0 +1,244 @@
+@layer components {
+  /*
+   * 没有封面的活动和文章此前退回一张纯白卡片，首页看上去是空的。
+   * 这里把「无封面」做成一个有意设计的状态：按活动类型取色的装饰图块。
+   * 有封面时由 :has(img) 让位给玻璃封面那套样式。
+   */
+  .card-tile {
+    --tile-h: 18;
+    --tile-c: 0.055;
+    position: relative;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    isolation: isolate;
+    aspect-ratio: 16 / 9;
+    background:
+      radial-gradient(
+        120% 120% at 12% 0%,
+        oklch(0.95 var(--tile-c) var(--tile-h)) 0%,
+        transparent 62%
+      ),
+      linear-gradient(
+        142deg,
+        oklch(0.93 var(--tile-c) var(--tile-h)) 0%,
+        oklch(0.975 calc(var(--tile-c) * 0.4) calc(var(--tile-h) + 26)) 100%
+      );
+    color: oklch(0.5 0.11 var(--tile-h));
+  }
+
+  /* 细斜纹给平涂的渐变一点质感，不抢标题。 */
+  .card-tile::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    opacity: 0.55;
+    background: repeating-linear-gradient(
+      118deg,
+      transparent 0 17px,
+      oklch(1 0 0 / 0.42) 17px 18px
+    );
+  }
+
+  /* 一圈内描边，让图块和卡片边缘分开。 */
+  .card-tile::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    box-shadow: inset 0 0 0 1px oklch(0.5 0.09 var(--tile-h) / 0.13);
+  }
+
+  .card-tile-glyph {
+    max-width: 90%;
+    font-size: var(--text-xl);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: 0.14em;
+    text-align: center;
+    text-indent: 0.14em;
+    opacity: 0.62;
+    overflow-wrap: anywhere;
+  }
+
+  .card-tile[data-type="SCRIM"] {
+    --tile-h: 18;
+  }
+  .card-tile[data-type="FUN"] {
+    --tile-h: 72;
+  }
+  .card-tile[data-type="TRAINING"] {
+    --tile-h: 168;
+  }
+  .card-tile[data-type="WATCH"] {
+    --tile-h: 258;
+  }
+  .card-tile[data-type="CUSTOM"] {
+    --tile-h: 322;
+  }
+  /* 文章没有活动那样的类型语义，用一组冷色轮换，只为彼此可区分。 */
+  .card-tile--article {
+    --tile-h: 238;
+    --tile-c: 0.045;
+  }
+  .card-tile--article[data-tone="0"] {
+    --tile-h: 238;
+  }
+  .card-tile--article[data-tone="1"] {
+    --tile-h: 196;
+  }
+  .card-tile--article[data-tone="2"] {
+    --tile-h: 286;
+  }
+  .card-tile--article[data-tone="3"] {
+    --tile-h: 162;
+  }
+  .card-tile--article .card-tile-glyph {
+    font-size: var(--text-3xl);
+    letter-spacing: 0;
+    text-indent: 0;
+    opacity: 0.5;
+  }
+
+  /* 有真实封面时装饰图块让位。 */
+  :is(.event-card-image, .article-card-cover):has(img) .card-tile {
+    display: none;
+  }
+
+  /* 无封面时容器把自己的盒子交给图块，别再居中压缩它。 */
+  :is(.event-card-image, .article-card-cover):not(:has(img)) {
+    display: block;
+    aspect-ratio: auto;
+    min-height: 0;
+    padding: 0;
+    gap: 0;
+    background: none;
+  }
+  :is(.event-card-image, .article-card-cover) > .card-tile {
+    width: 100%;
+  }
+
+  /* 紧凑卡片：图块收成左侧的方形缩略图，整行更好扫读。 */
+  :is(.event-card--compact, .article-card--compact)
+    :is(.event-card-image, .article-card-cover):not(:has(img))
+    .card-tile {
+    aspect-ratio: auto;
+    height: 100%;
+    min-height: 6.5rem;
+  }
+  :is(.event-card--compact, .article-card--compact)
+    :is(.event-card-image, .article-card-cover):not(:has(img))
+    .card-tile::before {
+    display: none;
+  }
+  :is(.event-card--compact, .article-card--compact)
+    :is(.event-card-image, .article-card-cover):not(:has(img))
+    .card-tile-glyph {
+    font-size: var(--text-base);
+    letter-spacing: 0.1em;
+    text-indent: 0.1em;
+  }
+  .card.event-card--compact:not(:has(.event-card-image img)),
+  .article-card--compact
+    > .card:not(:has(.article-card-cover img)):has(.card-tile) {
+    display: grid;
+    grid-template-columns: 7.5rem minmax(0, 1fr);
+    align-items: stretch;
+  }
+  .article-card--compact
+    .article-card-cover:not(:has(img)) {
+    aspect-ratio: auto;
+    height: 100%;
+  }
+
+  /* 特写卡片：图块当横幅，标题压在下方。 */
+  :is(.event-card--featured, .article-card--featured)
+    :is(.event-card-image, .article-card-cover):not(:has(img))
+    .card-tile {
+    aspect-ratio: 21 / 9;
+  }
+  :is(.event-card--featured, .article-card--featured)
+    :is(.event-card-image, .article-card-cover):not(:has(img))
+    .card-tile-glyph {
+    font-size: var(--text-2xl);
+  }
+
+  /* 图块已经把类型写得很大，卡片正文里的小标签就是重复了。 */
+  .event-card:has(.card-tile:not([hidden]))
+    .event-card-image:not(:has(img))
+    ~ .event-card-copy
+    .event-card-type {
+    display: none;
+  }
+  .event-card-image:not(:has(img)) ~ .event-card-copy .event-card-header {
+    justify-content: flex-end;
+  }
+
+  /* 紧凑活动卡此前四行挤在一起，简介由组件按 variant 决定不渲染。 */
+  .event-card--compact .event-card-copy {
+    justify-content: center;
+  }
+
+  /*
+   * 玩家头像本来是统一的灰块，跟新的彩色图块放在同一屏里很脱节。
+   * 按主玩位置取色，用的是同一套色相。
+   */
+  .player-card .avatar__fallback {
+    --tile-h: 258;
+    background: linear-gradient(
+      142deg,
+      oklch(0.93 0.05 var(--tile-h)) 0%,
+      oklch(0.975 0.02 calc(var(--tile-h) + 26)) 100%
+    );
+    color: oklch(0.5 0.11 var(--tile-h));
+  }
+  .player-card[data-role="TANK"] .avatar__fallback {
+    --tile-h: 258;
+  }
+  .player-card[data-role="DAMAGE"] .avatar__fallback {
+    --tile-h: 32;
+  }
+  .player-card[data-role="SUPPORT"] .avatar__fallback {
+    --tile-h: 152;
+  }
+  .player-card[data-role="FLEX"] .avatar__fallback {
+    --tile-h: 308;
+  }
+
+  @media (forced-colors: active) {
+    .player-card .avatar__fallback {
+      background: Canvas;
+      color: CanvasText;
+    }
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    :is(.event-card, .article-card):hover .card-tile::before {
+      opacity: 0.72;
+    }
+  }
+}
+
+@media (prefers-contrast: more) {
+  .card-tile {
+    color: oklch(0.38 0.13 var(--tile-h));
+  }
+  .card-tile-glyph {
+    opacity: 1;
+  }
+}
+
+@media (forced-colors: active) {
+  .card-tile {
+    background: Canvas;
+    color: CanvasText;
+    border: 1px solid CanvasText;
+  }
+  .card-tile::before,
+  .card-tile::after {
+    display: none;
+  }
+  .card-tile-glyph {
+    opacity: 1;
+  }
+}

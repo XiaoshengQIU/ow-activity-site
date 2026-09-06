@@ -21,9 +21,6 @@
     background: var(--surface-secondary);
     color: var(--link);
   }
-  .article-card-cover:not(:has(img)) {
-    display: none;
-  }
   .article-card-cover img {
     width: 100%;
     height: 100%;

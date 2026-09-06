@@ -4,6 +4,7 @@
 @import "./articles.css";
 @import "./admin-ui.css";
 @import "./glass-cards.css";
+@import "./card-tiles.css";
 @import "./glass-nav.css";
 @import "./motion.css";
 @import "./player-carousel.css";
@@ -214,9 +215,6 @@
     padding: 0;
     overflow: hidden;
   }
-  .event-card-image:not(:has(img)) {
-    display: none;
-  }
   .event-card-description {
     color: var(--muted);
   }
@@ -258,9 +256,6 @@
   }
   .event-card--compact .event-card-title {
     font-size: var(--text-base);
-  }
-  .event-card--compact .event-card-body > div > p {
-    display: none;
   }
   .event-card-header {
     display: flex;

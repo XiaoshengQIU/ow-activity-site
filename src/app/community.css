@@ -53,6 +53,26 @@
     font-size: var(--text-4xl);
     font-weight: var(--font-weight-semibold);
     line-height: var(--text-4xl--line-height);
+    letter-spacing: -0.015em;
+  }
+  .home-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.875rem;
+    padding: 0.25rem 0.75rem 0.25rem 0.5rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+    color: color-mix(in srgb, var(--accent) 82%, var(--foreground));
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-medium);
+  }
+  .home-eyebrow::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--accent);
   }
   .home-intro h1 > span {
     display: inline-block;
@@ -79,6 +99,7 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 2rem;
     margin-top: 2rem;
+    align-items: start;
   }
   .home-content-grid .home-section {
     margin-top: 0;
@@ -86,19 +107,48 @@
   .home-card-list {
     display: grid;
     gap: 1rem;
+    align-content: start;
   }
   .home-section .section-heading {
     margin-top: 0;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--separator);
   }
+  /* 标题左侧一小段强调色，两个栏目各自成块。 */
+  .home-section .section-title {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+  }
+  .home-section .section-title::before {
+    content: "";
+    width: 3px;
+    height: 1.05em;
+    border-radius: 999px;
+    background: var(--accent);
+  }
+  /* 空状态此前是一个 14rem 的白盒子，改成有意设计的虚线面板。 */
   .home-empty {
-    padding: 1.5rem;
-    min-height: 14rem;
+    padding: 2rem 1.5rem;
+    min-height: 11rem;
+    align-items: center;
     justify-content: center;
+    gap: 0.5rem;
+    text-align: center;
+    border-style: dashed;
+    border-color: var(--separator);
+    background: var(--surface-secondary);
+    box-shadow: none;
   }
   .home-empty > p {
     font-size: var(--text-sm);
     line-height: var(--text-sm--line-height);
     color: var(--muted);
+  }
+  .home-empty-title {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-semibold);
+    color: var(--foreground);
   }
   .community-footer {
     width: min(100% - 4rem, 70rem);

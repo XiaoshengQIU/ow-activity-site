@@ -7,8 +7,20 @@ import { Button, ButtonLink, InputField } from "@/components/ui";
 import { prisma, isDatabaseConfigured } from "@/lib/prisma";
 import { articleCardSelect } from "@/lib/articles-data";
 import { publicArticleWhere } from "@/lib/article-service";
+import { demoArticles } from "@/lib/demo-data";
 
 export const metadata: Metadata = { title: "社区文章" };
+// 没有数据库时列表页也用演示文章，否则首页有内容、点进来却是空的。
+function demoArticleList(q: string) {
+  const keyword = q.toLowerCase();
+  const matched = keyword
+    ? demoArticles.filter((article) =>
+        `${article.title} ${article.excerpt}`.toLowerCase().includes(keyword),
+      )
+    : demoArticles;
+  return [matched.length, matched] as const;
+}
+
 export default async function ArticlesPage({
   searchParams,
 }: {
@@ -39,7 +51,7 @@ export default async function ArticlesPage({
           select: articleCardSelect,
         }),
       ])
-    : [0, []];
+    : demoArticleList(q);
   const pages = Math.max(1, Math.ceil(count / 12));
   const page = Math.min(pages, requestedPage);
   return (

@@ -51,6 +51,22 @@ test("旧管理员没有权限列表时仍视为全权，避免升级后锁死",
   assert.equal(hasPermission(legacy, "oauth"), true);
 });
 
+test("权限名全部无法识别时按无权限处理，不退回全权", () => {
+  // 空列表是老数据，保持全权；有值却认不出来是脏数据或废弃的权限名，
+  // 这时再放行等于把误写的字段变成提权。
+  const dirty = {
+    role: "ADMIN",
+    status: "APPROVED",
+    primaryAdmin: false,
+    adminPermissions: ["evnets", "已删除的权限"],
+  };
+  assert.equal(hasPermission(dirty, "oauth"), false);
+  assert.equal(hasPermission(dirty, "users"), false);
+  const partial = { ...dirty, adminPermissions: ["events", "不认识"] };
+  assert.equal(hasPermission(partial, "events"), true);
+  assert.equal(hasPermission(partial, "backup"), false);
+});
+
 test("普通玩家没有任何后台权限", () => {
   assert.equal(
     hasPermission({ role: "USER", status: "APPROVED" }, "users"),

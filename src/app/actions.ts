@@ -26,7 +26,8 @@ import {
   planStaffAssignment,
 } from "@/lib/admin-permissions";
 import { applyProfileReview } from "@/lib/profile-review";
-import { avatarFileToDataUrl } from "@/lib/avatar-upload";
+import { avatarFileToBytes } from "@/lib/avatar-upload";
+import { storeSiteAsset } from "@/lib/asset-storage";
 import { assertDatabaseConfigured, prisma } from "@/lib/prisma";
 import { parseEventInput } from "@/lib/event-input";
 import { eventStatusLabels } from "@/lib/format";
@@ -240,12 +241,20 @@ export async function updateProfileAction(formData: FormData) {
   }
 
   if (avatarFile instanceof File && avatarFile.size > 0) {
+    let bytes: Uint8Array<ArrayBuffer>;
     try {
-      avatarUrl = await avatarFileToDataUrl(avatarFile);
+      bytes = await avatarFileToBytes(avatarFile);
     } catch (error) {
       const code = error instanceof Error ? error.message : "avatar-type";
-      redirect(`/me?error=${code}`);
+      redirect(`/me?error=${encodeURIComponent(code)}`);
     }
+    const asset = await storeSiteAsset({
+      data: bytes,
+      name: avatarFile.name.slice(0, 200) || "头像",
+      mimeType: avatarFile.type,
+      uploadedById: user.id,
+    });
+    avatarUrl = "/api/site-assets/" + asset.id;
   }
 
   const reviewStatus = user.role === "ADMIN" ? "APPROVED" : "PENDING";

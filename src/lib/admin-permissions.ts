@@ -62,8 +62,12 @@ export function parseGrantedPermissions(values: string[]): AdminPermission[] {
 export function grantedPermissions(user: AdminActor): AdminPermission[] {
   if (!isApprovedAdmin(user)) return [];
   if (user?.primaryAdmin) return [...ADMIN_PERMISSIONS];
-  const listed = parseGrantedPermissions(permissionList(user?.adminPermissions));
-  return listed.length ? listed : [...ADMIN_PERMISSIONS];
+  const stored = permissionList(user?.adminPermissions);
+  // 空列表是权限功能上线前建的管理员。迁移会回填，但用 db push 加字段不会，
+  // 那时全站管理员都是空列表且没有 primaryAdmin，收紧会让所有人进不了后台。
+  if (!stored.length) return [...ADMIN_PERMISSIONS];
+  // 有值却一项都认不出来，是脏数据或已废弃的权限名，这半边应当收紧而不是放行。
+  return parseGrantedPermissions(stored);
 }
 
 export function hasPermission<T extends AdminActor>(

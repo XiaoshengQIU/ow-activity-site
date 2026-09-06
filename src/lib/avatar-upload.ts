@@ -42,7 +42,12 @@ function hasValidSignature(type: string, bytes: Uint8Array) {
   return false;
 }
 
-export async function avatarFileToDataUrl(file: File) {
+// 头像曾经以 data URL 存进 Profile.avatarUrl，单张最多 512 KB、base64 后约
+// 683 KB，而这个字段每次整页加载都会随会话一起读出来，玩家页更是一次读全部。
+// 改为和站点图片走同一套 SiteAsset 存储，只在资料行里留一个地址。
+export async function avatarFileToBytes(
+  file: File,
+): Promise<Uint8Array<ArrayBuffer>> {
   if (file.size > MAX_AVATAR_BYTES) {
     throw new Error("avatar-size" satisfies AvatarUploadError);
   }
@@ -57,6 +62,6 @@ export async function avatarFileToDataUrl(file: File) {
     throw new Error("avatar-type" satisfies AvatarUploadError);
   }
 
-  return `data:${file.type};base64,${Buffer.from(bytes).toString("base64")}`;
+  return bytes;
 }
 

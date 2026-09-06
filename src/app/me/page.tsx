@@ -57,6 +57,7 @@ export default async function MePage({
     "avatar-size": "头像不能超过 512 KB。",
     "avatar-type": "头像只支持 PNG、JPEG、WebP 或 GIF。",
     profile: "资料格式有误，请检查后重新提交。",
+    banned: "该账号已被停用，无法修改资料。请联系管理员。",
   };
   const error =
     typeof query.error === "string" ? errors[query.error] : undefined;

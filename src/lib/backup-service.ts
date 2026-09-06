@@ -13,6 +13,8 @@ const deleteOrder = ["Session", "OAuthState", "EventRegistration", "Article", "P
 const insertOrder = ["User", "Profile", "AdminSetup", "OAuthConfig", "OAuthAccount", "UpdateSettings", "AiSettings", "Event", "EventRegistration", "Article", "SiteSettings", "SiteAsset"];
 const aiKeyContext = "ai-settings:review";
 const digest = (data: Uint8Array) => createHash("sha256").update(data).digest("hex");
+// /api/site-assets/[id] 只认 20-40 位小写字母数字，带连字符的 UUID 会被判成 404。
+export const siteAssetId = () => "avatar" + randomUUID().replaceAll("-", "");
 
 export function portableSnapshot(snapshot: BackupSnapshot, key: string | undefined): BackupSnapshot {
   return snapshot.map(({ table, rows }) => ({ table, rows: rows.map((source) => {
@@ -101,7 +103,7 @@ async function freezeExport(db: TransferDb, source: BackupSnapshot, ownerId: str
     if (typeof profile.avatarUrl !== "string" || !profile.avatarUrl.startsWith("data:")) continue;
     const match = /^data:(image\/(?:png|jpeg|webp|gif));base64,([A-Za-z0-9+/=]+)$/.exec(profile.avatarUrl);
     if (!match) throw new BackupError("玩家头像的数据格式不受支持，无法生成完整备份。");
-    const id = "backup-avatar-" + randomUUID(), data = Buffer.from(match[2], "base64");
+    const id = siteAssetId(), data = Buffer.from(match[2], "base64");
     assets.push({ id, name: `${profile.displayName}头像`, mimeType: match[1], data: "", uploadedById: profile.userId, createdAt: profile.createdAt });
     inlineMedia.set(id, data); profile.avatarUrl = `/api/site-assets/${id}`;
   }

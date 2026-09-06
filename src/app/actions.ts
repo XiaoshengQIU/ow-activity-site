@@ -211,6 +211,9 @@ const profileSchema = z.object({
 
 export async function updateProfileAction(formData: FormData) {
   const user = await requireUser();
+  // 被封禁的账号不能改资料。下面会把未通过的账号重置为 PENDING，
+  // 少了这道拦截，封禁用户保存一次资料就能把自己送回待审核队列。
+  if (user.status === "BANNED") redirect("/me?error=banned");
   const avatarFile = formData.get("avatarFile");
 
   const parsed = profileSchema.safeParse({
@@ -422,6 +425,10 @@ export async function updateUserStatusAction(
         status: status as "PENDING" | "APPROVED" | "REJECTED" | "BANNED",
       },
     });
+    // 登录接口会拦下封禁账号，但已经签发的会话不会自己过期。
+    if (status === "BANNED") {
+      await prisma.session.deleteMany({ where: { userId } });
+    }
   } catch {
     return {
       ok: false,

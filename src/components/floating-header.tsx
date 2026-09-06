@@ -21,15 +21,25 @@ export function FloatingHeader({
     let state = visibleHeaderAt(Math.max(0, window.scrollY));
     header.dataset.hidden = "false";
 
+    // 这两个值每帧读一次会强制同步布局；只在尺寸真的变了的时候量。
+    let maximum = 0;
+    let topBoundary = 0;
+    const measure = () => {
+      maximum = document.documentElement.scrollHeight - window.innerHeight;
+      topBoundary = header.offsetHeight + 24;
+    };
+    measure();
+
     const reveal = () => {
+      measure();
       state = visibleHeaderAt(Math.max(0, window.scrollY));
       header.dataset.hidden = "false";
     };
     const update = () => {
       frame = 0;
       state = nextHeaderScroll(state, window.scrollY, {
-        maximum: document.documentElement.scrollHeight - window.innerHeight,
-        topBoundary: header.offsetHeight + 24,
+        maximum,
+        topBoundary,
         // Dropdown popovers render in a portal; their trigger retains aria-expanded.
         locked: Boolean(
           header.querySelector('[aria-expanded="true"], :focus-visible'),
@@ -47,6 +57,10 @@ export function FloatingHeader({
       attributes: true,
       attributeFilter: ["aria-expanded"],
     });
+    // 图片加载、内容展开都会改变可滚动高度，交给 ResizeObserver 重新量。
+    const sizes = new ResizeObserver(measure);
+    sizes.observe(document.documentElement);
+    sizes.observe(header);
     window.addEventListener("scroll", schedule, { passive: true });
     window.addEventListener("resize", reveal);
     window.addEventListener("pageshow", reveal);
@@ -54,6 +68,7 @@ export function FloatingHeader({
     return () => {
       window.cancelAnimationFrame(frame);
       menus.disconnect();
+      sizes.disconnect();
       window.removeEventListener("scroll", schedule);
       window.removeEventListener("resize", reveal);
       window.removeEventListener("pageshow", reveal);

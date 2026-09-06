@@ -2,6 +2,7 @@ import "server-only";
 
 import { cache } from "react";
 
+import type { PlayerRole } from "@/generated/prisma/enums";
 import { demoEvents, demoProfiles } from "@/lib/demo-data";
 import { isDatabaseConfigured, prisma } from "@/lib/prisma";
 import { syncEventStatuses } from "@/lib/event-schedule";
@@ -51,15 +52,18 @@ export const getHomeData = cache(async () => {
   return { events, profiles, isDemo: false };
 });
 
-export const getPublicProfiles = cache(async () => {
+export const getPublicProfiles = cache(async (role?: string) => {
   if (!isDatabaseConfigured()) {
-    return demoProfiles;
+    return role
+      ? demoProfiles.filter((profile) => profile.mainRole === role)
+      : demoProfiles;
   }
 
   return prisma.profile.findMany({
     where: {
       reviewStatus: "APPROVED",
       user: { status: "APPROVED" },
+      ...(role ? { mainRole: role as PlayerRole } : {}),
     },
     orderBy: { updatedAt: "desc" },
     select: {

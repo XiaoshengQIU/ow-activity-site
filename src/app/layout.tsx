@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AriaRouterProvider } from "@/components/aria-router";
 import { Header } from "@/components/header";
 import { SiteContentProvider } from "@/components/site-content";
 import { createSiteText } from "@/lib/site-config";
@@ -32,9 +33,11 @@ export default async function RootLayout({
   return (
     <html lang="zh-CN" className="light">
       <body>
-        <SiteContentProvider configuration={configuration}>
-          <Header>{children}</Header>
-        </SiteContentProvider>
+        <AriaRouterProvider>
+          <SiteContentProvider configuration={configuration}>
+            <Header>{children}</Header>
+          </SiteContentProvider>
+        </AriaRouterProvider>
       </body>
     </html>
   );

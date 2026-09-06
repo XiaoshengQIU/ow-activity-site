@@ -14,15 +14,14 @@ export class AdminSetupClosedError extends Error {
 }
 
 export async function canSetUpAdmin(db: PrismaClient) {
-  const setup = await db.adminSetup.findUnique({
-    where: { id: ADMIN_SETUP_ID },
-  });
+  // 每次整页加载都会问一次，两条查询没有先后依赖，并行只花一个往返。
+  const [setup, admin] = await Promise.all([
+    db.adminSetup.findUnique({ where: { id: ADMIN_SETUP_ID } }),
+    db.user.findFirst({ where: { role: "ADMIN" }, select: { id: true } }),
+  ]);
   if (!setup || setup.completedAt) return false;
 
-  return !(await db.user.findFirst({
-    where: { role: "ADMIN" },
-    select: { id: true },
-  }));
+  return !admin;
 }
 
 export async function registerInitialAdmin(

@@ -30,7 +30,13 @@ const nextConfig: NextConfig = {
       ? buildCommit.toLowerCase()
       : "",
   },
-  experimental: { serverActions: { bodySizeLimit: "3mb" } },
+  experimental: {
+    serverActions: { bodySizeLimit: "3mb" },
+    // 全站都是 force-dynamic，客户端路由缓存默认 0 秒，连后退都要回服务端取。
+    staleTimes: { dynamic: 30, static: 180 },
+    // lucide-react 在 Next 的默认名单里，HeroUI 不在。
+    optimizePackageImports: ["@heroui/react"],
+  },
 };
 
 export default nextConfig;

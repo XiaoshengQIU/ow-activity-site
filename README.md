@@ -194,6 +194,12 @@ deploy/                VPS 配置模板、HTTPS 与定时任务
 
 正式站点请先看 [Vercel 部署](./VERCEL.md)。必须自建时再看 [VPS](./docs/VPS部署.md)。迁移网站见 [备份与恢复](./docs/备份与恢复.md)。2026-09-06 的开发快照见 [开发交接](./docs/开发交接-2026-09-06.md)，其中未完成项以当时记录为准，打包和发布以本文与各部署文档为准。
 
+## 贡献者
+
+- [XiaoshengQIU](https://github.com/XiaoshengQIU)
+- [Uniseem](https://github.com/Uniseem)
+- Claude（Anthropic 的 AI 助手，在 Claude Code 中协作）——导航性能排查与修复
+
 ## 版权说明
 
 本项目为非官方玩家社区工具，不代表上海交通大学、暴雪或守望先锋官方。封面为抽象电竞风格自制图片。

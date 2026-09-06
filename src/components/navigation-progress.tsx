@@ -11,7 +11,7 @@ import {
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { AdminRouteFallback } from "@/components/admin-route-fallback";
 import { CommunityRouteFallback } from "@/components/community-route-fallback";
 import {
@@ -50,6 +50,8 @@ export function NavigationProgressProvider({
   children: ReactNode;
 }) {
   const pathname = usePathname();
+  const search = useSearchParams().toString();
+  const committedUrl = pathname + (search ? "?" + search : "");
   const [pendingPath, setPendingPath] = useState<string | null>(null);
   const [swapPage, setSwapPage] = useState(false);
   const [bar, setBar] = useState<BarState>("idle");
@@ -80,23 +82,25 @@ export function NavigationProgressProvider({
   useEffect(() => {
     if (pendingPath) return;
     committedPath.current = pathname;
-    committedSearch.current = window.location.search;
-  }, [pathname, pendingPath]);
+    committedSearch.current = search ? "?" + search : "";
+  }, [pathname, search, pendingPath]);
 
   const finish = useCallback(() => {
     if (!pendingRef.current) return;
     pendingRef.current = null;
     window.clearTimeout(safetyTimer.current);
-    const elapsed = Date.now() - startedAt.current;
     window.clearTimeout(finishTimer.current);
+    // 新页面已经到了就立刻交出去，不让进度条的收尾动画拖住内容。
+    setPendingPath(null);
+    setSwapPage(false);
+    const elapsed = Date.now() - startedAt.current;
     finishTimer.current = window.setTimeout(
       () => {
-        setPendingPath(null);
-        setSwapPage(false);
         setBar("done");
         window.clearTimeout(resetTimer.current);
         resetTimer.current = window.setTimeout(() => setBar("idle"), 320);
       },
+      // 极快的切换里进度条只闪一下更难看，给它一个最短可见时长。
       Math.max(0, 160 - elapsed),
     );
   }, []);
@@ -112,6 +116,15 @@ export function NavigationProgressProvider({
     setBar("running");
     safetyTimer.current = window.setTimeout(() => finish(), 12_000);
   }, [finish]);
+
+  // 路由真正提交后地址才会变。之前靠 children 引用判断新页面是否到达，
+  // 但客户端导航不会重渲染根布局，那个引用永远不变，进度条只能等兜底定时器。
+  const committedRef = useRef(committedUrl);
+  useEffect(() => {
+    if (committedRef.current === committedUrl) return;
+    committedRef.current = committedUrl;
+    finish();
+  }, [committedUrl, finish]);
 
   const start = useCallback((href: string) => {
     const intent = navigationIntent(href, {
@@ -137,12 +150,14 @@ export function NavigationProgressProvider({
     const onPopState = () => {
       begin(location.pathname, true);
     };
-    document.addEventListener("click", onClick, true);
-    document.addEventListener("submit", onSubmit, true);
+    // 冒泡阶段监听：未保存表单的离开确认在捕获阶段 stopPropagation，
+    // 取消导航时这里就不会亮起一个永远不会结束的进度条。
+    document.addEventListener("click", onClick);
+    document.addEventListener("submit", onSubmit);
     window.addEventListener("popstate", onPopState);
     return () => {
-      document.removeEventListener("click", onClick, true);
-      document.removeEventListener("submit", onSubmit, true);
+      document.removeEventListener("click", onClick);
+      document.removeEventListener("submit", onSubmit);
       window.removeEventListener("popstate", onPopState);
       window.clearTimeout(finishTimer.current);
       window.clearTimeout(resetTimer.current);
@@ -180,22 +195,10 @@ export function NavigationProgressProvider({
 }
 
 export function NavigationPendingPage({ children }: { children: ReactNode }) {
-  const { pendingPath, swapPage, displayPath, finish } = useContext(
+  const { pendingPath, swapPage, displayPath } = useContext(
     NavigationProgressContext,
   );
-  const childrenRef = useRef(children);
   const showFallback = swapPage && pendingPath !== null;
-
-  useEffect(() => {
-    if (!pendingPath) {
-      childrenRef.current = children;
-      return;
-    }
-    if (childrenRef.current !== children) {
-      childrenRef.current = children;
-      finish();
-    }
-  }, [children, finish, pendingPath]);
 
   return (
     <>

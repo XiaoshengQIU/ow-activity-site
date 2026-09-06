@@ -28,8 +28,10 @@ export function navigationIntent(
   };
 }
 
+// 冒泡阶段调用：Next 的 Link 已经在 React 处理器里 preventDefault 了，
+// defaultPrevented 对这里没有判别力，取消导航要靠捕获阶段的 stopPropagation。
 export function clickNavigationHref(event: MouseEvent): string | null {
-  if (event.defaultPrevented || event.button !== 0) return null;
+  if (event.button !== 0) return null;
   if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
     return null;
   }

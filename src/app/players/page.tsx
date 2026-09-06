@@ -13,20 +13,18 @@ export default async function PlayersPage({
 }: {
   searchParams: Promise<{ q?: string; role?: string }>;
 }) {
-  const [allProfiles, query] = await Promise.all([
-    getPublicProfiles(),
-    searchParams,
-  ]);
+  const query = await searchParams;
   const role =
     query.role && Object.hasOwn(roleLabels, query.role) ? query.role : "all";
   const q = typeof query.q === "string" ? query.q.trim().slice(0, 100) : "";
+  // 位置筛选交给数据库，页面只在结果里做文字匹配。
+  const allProfiles = await getPublicProfiles(role === "all" ? undefined : role);
   const profiles = allProfiles.filter(
     (profile) =>
-      (role === "all" || profile.mainRole === role) &&
-      (!q ||
-        `${profile.displayName} ${profile.slogan} ${profile.mainHeroes.join(" ")}`
-          .toLowerCase()
-          .includes(q.toLowerCase())),
+      !q ||
+      `${profile.displayName} ${profile.slogan} ${profile.mainHeroes.join(" ")}`
+        .toLowerCase()
+        .includes(q.toLowerCase()),
   );
   return (
     <main className="page-shell">

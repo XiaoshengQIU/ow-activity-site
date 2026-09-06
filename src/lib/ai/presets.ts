@@ -1,16 +1,9 @@
-// Channel list follows one-api / New API / LiteLLM: one OpenAI-compatible
-// base URL plus a key, then pick any model that gateway exposes.
+// 一个 OpenAI 兼容的 base URL 加一把 key，模型名由该网关暴露什么就填什么，
+// 与 one-api / New API / LiteLLM 的用法一致。
+// 下面的地址均来自各厂商自己的公开文档；带版本号的路径原样保留，
+// openaiCompatibleRoot 只在结尾没有 /vN 时才补 /v1。
 export const AI_PRESETS = [
-  {
-    id: "openai",
-    label: "OpenAI",
-    baseUrl: "https://api.openai.com/v1",
-  },
-  {
-    id: "openrouter",
-    label: "OpenRouter",
-    baseUrl: "https://openrouter.ai/api/v1",
-  },
+  // 国内常用
   {
     id: "deepseek",
     label: "DeepSeek",
@@ -35,6 +28,78 @@ export const AI_PRESETS = [
     id: "zhipu",
     label: "智谱 GLM",
     baseUrl: "https://open.bigmodel.cn/api/paas/v4",
+  },
+  {
+    id: "doubao",
+    label: "豆包（火山方舟）",
+    baseUrl: "https://ark.cn-beijing.volces.com/api/v3",
+  },
+  {
+    id: "hunyuan",
+    label: "腾讯混元",
+    baseUrl: "https://api.hunyuan.cloud.tencent.com/v1",
+  },
+  {
+    id: "qianfan",
+    label: "百度千帆",
+    baseUrl: "https://qianfan.baidubce.com/v2",
+  },
+  {
+    id: "minimax",
+    label: "MiniMax",
+    baseUrl: "https://api.minimaxi.com/v1",
+  },
+  {
+    id: "stepfun",
+    label: "阶跃星辰",
+    baseUrl: "https://api.stepfun.com/v1",
+  },
+  {
+    id: "modelscope",
+    label: "魔搭 ModelScope",
+    baseUrl: "https://api-inference.modelscope.cn/v1",
+  },
+  // 国际
+  {
+    id: "openai",
+    label: "OpenAI",
+    baseUrl: "https://api.openai.com/v1",
+  },
+  {
+    id: "openrouter",
+    label: "OpenRouter",
+    baseUrl: "https://openrouter.ai/api/v1",
+  },
+  {
+    id: "xai",
+    label: "xAI Grok",
+    baseUrl: "https://api.x.ai/v1",
+  },
+  {
+    id: "groq",
+    label: "Groq",
+    baseUrl: "https://api.groq.com/openai/v1",
+  },
+  {
+    id: "mistral",
+    label: "Mistral",
+    baseUrl: "https://api.mistral.ai/v1",
+  },
+  {
+    id: "together",
+    label: "Together AI",
+    baseUrl: "https://api.together.xyz/v1",
+  },
+  // 自建：地址由管理员填写
+  {
+    id: "ollama",
+    label: "Ollama（本机）",
+    baseUrl: "http://localhost:11434/v1",
+  },
+  {
+    id: "lmstudio",
+    label: "LM Studio（本机）",
+    baseUrl: "http://localhost:1234/v1",
   },
   {
     id: "oneapi",

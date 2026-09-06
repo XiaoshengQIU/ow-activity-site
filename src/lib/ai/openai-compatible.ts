@@ -68,6 +68,14 @@ export async function listOpenAiModels(input: {
   return models;
 }
 
+// 推理模型（o 系列、gpt-5 等）只接受默认温度，带上 temperature 会被 400 拒绝。
+// 审核失败是静默的，管理员看不到原因，所以识别出这类报错后不带温度重试一次。
+function rejectsTemperature(error: unknown) {
+  return (
+    error instanceof AiClientError && /temperature/i.test(error.message)
+  );
+}
+
 export async function createChatCompletion(input: {
   baseUrl: string;
   apiKey: string;
@@ -75,21 +83,26 @@ export async function createChatCompletion(input: {
   model: string;
   messages: { role: "system" | "user"; content: string }[];
 }) {
-  const response = await fetch(
-    openaiCompatibleRoot(input.baseUrl) + "/chat/completions",
-    {
+  const url = openaiCompatibleRoot(input.baseUrl) + "/chat/completions";
+  const send = (withTemperature: boolean) =>
+    fetch(url, {
       method: "POST",
       headers: requestHeaders(input.apiKey, input.origin),
       body: JSON.stringify({
         model: input.model,
-        temperature: 0.1,
+        ...(withTemperature ? { temperature: 0.1 } : {}),
         messages: input.messages,
       }),
       cache: "no-store",
       signal: AbortSignal.timeout(TIMEOUT_MS),
-    },
-  );
-  const body = await readJson(response);
+    });
+  let body: unknown;
+  try {
+    body = await readJson(await send(true));
+  } catch (error) {
+    if (!rejectsTemperature(error)) throw error;
+    body = await readJson(await send(false));
+  }
   const content =
     body &&
     typeof body === "object" &&

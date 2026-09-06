@@ -9,6 +9,7 @@ import {
   revalidatePlayers,
 } from "@/lib/revalidate-site";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { z } from "zod";
 
 import {
@@ -123,8 +124,12 @@ export async function registerAction(
     });
 
     await createSession(user.id);
-    const { maybeAutoReviewByUserId } = await import("@/lib/ai/review");
-    await maybeAutoReviewByUserId(user.id);
+    // AI 审核要打一次外部模型接口，最长 15 秒。放在响应之后跑，
+    // 注册不必为它干等；失败时资料保持待审核，人工照样能处理。
+    after(async () => {
+      const { maybeAutoReviewByUserId } = await import("@/lib/ai/review");
+      await maybeAutoReviewByUserId(user.id);
+    });
   } catch (error) {
     if (error instanceof Error && /unique constraint/i.test(error.message)) {
       return { message: "这个用户名已经被注册。" };
@@ -301,8 +306,10 @@ export async function updateProfileAction(formData: FormData) {
   }
 
   if (reviewStatus === "PENDING") {
-    const { maybeAutoReviewProfile } = await import("@/lib/ai/review");
-    await maybeAutoReviewProfile(profile.id);
+    after(async () => {
+      const { maybeAutoReviewProfile } = await import("@/lib/ai/review");
+      await maybeAutoReviewProfile(profile.id);
+    });
   }
 
   revalidateAccount();

@@ -56,8 +56,15 @@ export async function maybeAutoReviewProfile(profileId: string) {
       origin,
       model: settings.model,
       messages: [
-        { role: "system", content: buildReviewPrompt(profile) },
-        { role: "user", content: buildReviewUserMessage(profile) },
+        { role: "system", content: buildReviewPrompt() },
+        {
+          role: "user",
+          content: buildReviewUserMessage({
+            ...profile,
+            // Prisma 的行里只有 avatarUrl，不补这一步 hasAvatar 恒为 false。
+            hasAvatar: Boolean(profile.avatarUrl),
+          }),
+        },
       ],
     });
     const result = parseReviewResponse(raw);

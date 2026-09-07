@@ -13,6 +13,8 @@ import {
   saveSiteSettingsAction,
   uploadSiteAssetAction,
 } from "@/app/admin/customize/actions";
+import { shrinkForUpload } from "@/lib/image-downscale";
+import { MAX_SITE_ASSET_BYTES } from "@/lib/site-asset";
 
 const groups = [...new Set(editableCopyFields.map((field) => field.group))];
 
@@ -258,15 +260,17 @@ function ImageSetting({
           event.target.value = "";
           if (!file) return;
           setError("");
-          if (file.size > 2 * 1024 * 1024) {
-            setError("图片不能超过 2 MB。");
-            return;
-          }
           setUploading(true);
           onUploadStart();
           try {
             const data = new FormData();
-            data.set("file", file);
+            // 先压缩再判大小，否则超限的图片根本走不到压缩这一步。
+            const prepared = await shrinkForUpload(file);
+            if (prepared.size > MAX_SITE_ASSET_BYTES) {
+              setError("图片压缩后仍超过 2 MB，请换一张。");
+              return;
+            }
+            data.set("file", prepared);
             const result = await uploadSiteAssetAction(data);
             if (result.url) onChange(result.url);
             else setError(result.error ?? "上传失败。");

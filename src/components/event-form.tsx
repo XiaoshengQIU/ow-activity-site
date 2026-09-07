@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { EventFormResult } from "@/app/actions";
 import { uploadSiteAssetAction } from "@/app/admin/customize/actions";
+import { shrinkForUpload } from "@/lib/image-downscale";
 import { ActionButton } from "@/components/action-button";
 import { EventTypeField } from "@/components/event-type-field";
 import {
@@ -130,8 +131,8 @@ export function EventForm({ action, event, feedback }: EventFormProps) {
     if (uploadLock.current || pending) return;
     setCoverError("");
     setCoverAuthRequired(false);
-    if (!file.size || file.size > MAX_SITE_ASSET_BYTES) {
-      setCoverError("图片不能为空，且不能超过 2 MB。");
+    if (!file.size) {
+      setCoverError("图片不能为空。");
       return;
     }
     if (
@@ -146,7 +147,14 @@ export function EventForm({ action, event, feedback }: EventFormProps) {
     setUploadingCover(true);
     try {
       const data = new FormData();
-      data.set("file", file);
+      // 先压缩再判大小：超限的图片压过之后往往就合格了，
+      // 拿原始体积拦在压缩前面等于让压缩形同虚设。
+      const prepared = await shrinkForUpload(file);
+      if (prepared.size > MAX_SITE_ASSET_BYTES) {
+        setCoverError("图片压缩后仍超过 2 MB，请换一张。");
+        return;
+      }
+      data.set("file", prepared);
       const uploaded = await uploadSiteAssetAction(data);
       if (uploaded.url) {
         setCoverUrl(uploaded.url);

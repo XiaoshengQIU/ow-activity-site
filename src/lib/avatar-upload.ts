@@ -1,4 +1,4 @@
-const MAX_AVATAR_BYTES = 512 * 1024;
+export const MAX_AVATAR_BYTES = 512 * 1024;
 
 const ALLOWED_AVATAR_TYPES = new Set([
   "image/jpeg",

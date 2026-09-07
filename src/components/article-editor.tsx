@@ -47,6 +47,7 @@ import {
   inspectArticleRecoveryAction,
 } from "@/app/admin/articles/actions";
 import { uploadSiteAssetAction } from "@/app/admin/customize/actions";
+import { shrinkForUpload } from "@/lib/image-downscale";
 
 // 首次保存需要切到正式编辑路由，短暂保留服务端回执以跨过组件重新挂载。
 let pendingSaveFeedback: {
@@ -425,7 +426,7 @@ export function ArticleEditor({
     setUploading(true);
     try {
       const data = new FormData();
-      data.set("file", file);
+      data.set("file", await shrinkForUpload(file));
       const response = await uploadSiteAssetAction(data);
       if (response.url) {
         update("coverUrl", response.url);

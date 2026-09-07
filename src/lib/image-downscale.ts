@@ -2,7 +2,9 @@ import { MAX_SITE_ASSET_BYTES } from "@/lib/site-asset";
 
 // 截图动辄好几 MB，而站点图片上限是 2 MB。超限的先在浏览器里缩一版再传，
 // 否则粘贴截图这条最常用的路径几乎总是被大小校验拦下。
-const EDGES = [2000, 1400];
+// 逐级缩小直到压进上限。头像那种 512 KB 的紧限额需要更靠后的档位，
+// 而头像显示尺寸只有几十像素，缩到 600 px 也完全够用。
+const EDGES = [2000, 1400, 900, 600];
 const QUALITIES = [0.85, 0.7, 0.55];
 const EXTENSIONS: Record<string, string> = {
   "image/webp": "webp",
@@ -17,10 +19,16 @@ function renamed(file: File, blob: Blob) {
   });
 }
 
-export async function shrinkForUpload(file: File): Promise<File> {
+/**
+ * 超出上限的图片先在浏览器里缩一版再上传。头像、封面、站点图片和正文内嵌图
+ * 共用这一条路径，只是各自的上限不同。没超限的原样返回，不损画质。
+ */
+export async function shrinkForUpload(
+  file: File,
+  limit: number = MAX_SITE_ASSET_BYTES,
+): Promise<File> {
   // 动图重新编码会丢掉动画，宁可让服务端按大小拒绝。
-  if (file.type === "image/gif" || file.size <= MAX_SITE_ASSET_BYTES)
-    return file;
+  if (file.type === "image/gif" || file.size <= limit) return file;
   let bitmap: ImageBitmap;
   try {
     bitmap = await createImageBitmap(file);
@@ -47,7 +55,7 @@ export async function shrinkForUpload(file: File): Promise<File> {
           blob &&
           EXTENSIONS[blob.type] &&
           blob.size > 0 &&
-          blob.size <= MAX_SITE_ASSET_BYTES
+          blob.size <= limit
         )
           return renamed(file, blob);
       }

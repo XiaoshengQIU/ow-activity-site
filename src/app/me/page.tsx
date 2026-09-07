@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { updateProfileAction } from "@/app/actions";
+import { ImageFileField } from "@/components/image-file-field";
+import { MAX_AVATAR_BYTES } from "@/lib/avatar-upload";
 import { ActionButton } from "@/components/action-button";
 import { Avatar } from "@/components/avatar";
 import { PageHeading } from "@/components/page-heading";
@@ -202,12 +204,12 @@ export default async function MePage({
                     defaultValue={profile?.mainRole ?? ""}
                     options={{ "": "暂不选择", ...roleLabels }}
                   />
-                  <InputField
+                  <ImageFileField
                     label="上传头像"
                     name="avatarFile"
-                    type="file"
                     accept="image/png,image/jpeg,image/webp,image/gif"
-                    description="PNG、JPEG、WebP 或 GIF，最大 512 KB。"
+                    limit={MAX_AVATAR_BYTES}
+                    description="PNG、JPEG、WebP 或 GIF；过大的图片会自动压缩。"
                   />
                   <InputField
                     label="或使用头像链接"

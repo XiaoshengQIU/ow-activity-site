@@ -29,6 +29,7 @@ import { safeArticleUrl } from "@/lib/article-input";
 import { InputField, Notice } from "@/components/ui";
 import { uploadSiteAssetAction } from "@/app/admin/customize/actions";
 import { shrinkForUpload } from "@/lib/image-downscale";
+import { MAX_SITE_ASSET_BYTES } from "@/lib/site-asset";
 
 // 只认图片文件。剪贴板里同时有富文本和图片时，浏览器只在真正复制了图片
 // （截图、右键复制图片）的情况下才会填 files，复制网页片段不会走到这里。
@@ -115,6 +116,23 @@ export function ArticleRichEditor({
           }
         : null,
   });
+  // 占位段落先落在图片将要出现的位置，处理完再原地换成图片。
+  // 整个过程编辑器是禁用的（disabled -> setEditable(false)），文档不会变动，
+  // 所以记下的区间始终有效；失败时把占位删掉，正文不留痕迹。
+  function insertPlaceholder(text: string, at?: number) {
+    if (!editor) return null;
+    const target = at ?? editor.state.selection.to;
+    editor
+      .chain()
+      .focus()
+      .insertContentAt(target, {
+        type: "paragraph",
+        content: [{ type: "text", text }],
+      })
+      .run();
+    return { from: target, to: editor.state.selection.to };
+  }
+
   async function upload(files: File[], at?: number) {
     if (!editor || !files.length || disabled) return;
     setError("");
@@ -123,23 +141,36 @@ export function ArticleRichEditor({
     // 拖拽的第一张插在落点，其余顺着光标往后排。
     let position = at;
     try {
-      for (const file of files) {
+      for (const [index, file] of files.entries()) {
+        const label = files.length > 1 ? `（${index + 1}/${files.length}）` : "";
+        const oversize = file.size > MAX_SITE_ASSET_BYTES;
+        let range = insertPlaceholder(
+          oversize ? `正在压缩图片${label}…` : `正在上传图片${label}…`,
+          position,
+        );
+        const prepared = await shrinkForUpload(file);
+        if (oversize && range) {
+          // 压缩完成，占位改成上传中，位置不变。
+          range = replacePlaceholder(range, `正在上传图片${label}…`);
+        }
         const data = new FormData();
-        data.set("file", await shrinkForUpload(file));
+        data.set("file", prepared);
         const result = await uploadSiteAssetAction(data);
         if (!result.url) {
+          if (range) editor.chain().deleteRange(range).run();
           setError(result.error || "上传失败。");
           setAuthRequired(result.authRequired ?? false);
           break;
         }
-        const chain = editor.chain().focus();
-        if (position !== undefined) chain.setTextSelection(position);
-        chain
-          .setImage({
+        const image = {
+          type: "image",
+          attrs: {
             src: result.url,
             alt: file.name.replace(/\.[^.]+$/, ""),
-          })
-          .run();
+          },
+        };
+        if (range) editor.chain().focus().insertContentAt(range, image).run();
+        else editor.chain().focus().insertContent(image).run();
         position = undefined;
       }
     } catch {
@@ -148,6 +179,21 @@ export function ArticleRichEditor({
       onUploadChange(false);
       if (fileRef.current) fileRef.current.value = "";
     }
+  }
+
+  function replacePlaceholder(
+    range: { from: number; to: number },
+    text: string,
+  ) {
+    if (!editor) return range;
+    editor
+      .chain()
+      .insertContentAt(range, {
+        type: "paragraph",
+        content: [{ type: "text", text }],
+      })
+      .run();
+    return { from: range.from, to: editor.state.selection.to };
   }
   useEffect(() => {
     editor?.setEditable(!disabled, false);

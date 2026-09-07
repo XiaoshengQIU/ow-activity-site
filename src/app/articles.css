@@ -358,11 +358,25 @@
     position: sticky;
     top: 86px;
     z-index: 20;
+    /* 页头收起后让出的那一条空间要用掉，否则编辑区顶部一直被占着。 */
+    transition: top var(--motion-slow, 420ms)
+      var(--motion-enter, cubic-bezier(0.16, 1, 0.3, 1));
     padding: 17px 20px;
     border: 1px solid var(--border);
     border-radius: var(--radius-xl);
     background: var(--surface);
     box-shadow: var(--surface-shadow);
+  }
+  :is(.community-site, .admin-frame)
+    > :is(.community-header, .admin-header)[data-hidden="true"]
+    ~ :is(.community-content, .site-workspace)
+    .article-command-bar {
+    top: max(0.75rem, env(safe-area-inset-top));
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .article-command-bar {
+      transition: none;
+    }
   }
   .article-command-main {
     display: flex;

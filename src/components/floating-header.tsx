@@ -21,14 +21,14 @@ export function FloatingHeader({
     let state = visibleHeaderAt(Math.max(0, window.scrollY));
     header.dataset.hidden = "false";
 
-    // 这两个值每帧读一次会强制同步布局；只在尺寸真的变了的时候量。
-    let maximum = 0;
-    let topBoundary = 0;
+    // 可滚动高度必须实时读。曾经把它缓存起来靠 ResizeObserver 更新，但页面
+    // 变高不一定会通知到 documentElement；一旦缓存值偏小，nextHeaderScroll 里
+    // 的钳位会把滚动位置压到 topBoundary 以下，页头就再也不会收起。
+    // 页头自身高度变化很少，继续缓存，由它自己的 ResizeObserver 维护。
+    let topBoundary = header.offsetHeight + 24;
     const measure = () => {
-      maximum = document.documentElement.scrollHeight - window.innerHeight;
       topBoundary = header.offsetHeight + 24;
     };
-    measure();
 
     const reveal = () => {
       measure();
@@ -38,7 +38,7 @@ export function FloatingHeader({
     const update = () => {
       frame = 0;
       state = nextHeaderScroll(state, window.scrollY, {
-        maximum,
+        maximum: document.documentElement.scrollHeight - window.innerHeight,
         topBoundary,
         // Dropdown popovers render in a portal; their trigger retains aria-expanded.
         locked: Boolean(
@@ -57,9 +57,7 @@ export function FloatingHeader({
       attributes: true,
       attributeFilter: ["aria-expanded"],
     });
-    // 图片加载、内容展开都会改变可滚动高度，交给 ResizeObserver 重新量。
     const sizes = new ResizeObserver(measure);
-    sizes.observe(document.documentElement);
     sizes.observe(header);
     window.addEventListener("scroll", schedule, { passive: true });
     window.addEventListener("resize", reveal);

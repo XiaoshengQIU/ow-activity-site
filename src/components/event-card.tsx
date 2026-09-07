@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Card, StatusChip } from "@/components/ui";
 import { SiteCover } from "@/components/site-content";
 import { eventStatusLabels, eventTypeLabel } from "@/lib/format";
-import { formatEventDate, shanghaiDateValue } from "@/lib/event-date";
+import { formatEventMoment, scheduledEventStatus } from "@/lib/event-date";
 export type EventCardProps = {
   event: {
     id: string;
@@ -13,6 +13,7 @@ export type EventCardProps = {
     customType?: string | null;
     status: string;
     startTime: Date;
+    signupDeadline?: Date | null;
     maxParticipants: number;
     registrations?: readonly { id: string }[];
   };
@@ -25,6 +26,15 @@ export function EventCard({
   variant = "default",
 }: EventCardProps) {
   const href = hrefPrefix + "/" + event.id;
+  // 状态列由定时任务和读取时的同步维护，但显示不该依赖它跑没跑过：
+  // 这里按开始时间和报名截止时间当场判断，过期活动不会再标成报名中。
+  const status = scheduledEventStatus(
+    {
+      status: event.status as Parameters<typeof scheduledEventStatus>[0]["status"],
+      startTime: event.startTime,
+      signupDeadline: event.signupDeadline ?? null,
+    },
+  );
   return (
     <Card
       className={`event-card event-card--${variant} cover-glass-card`}
@@ -46,11 +56,10 @@ export function EventCard({
         <div className="event-card-header">
           <span className="event-card-type">{eventTypeLabel(event)}</span>
           <StatusChip
-            status={event.status}
+            status={status}
             label={
-              eventStatusLabels[
-                event.status as keyof typeof eventStatusLabels
-              ] ?? event.status
+              eventStatusLabels[status as keyof typeof eventStatusLabels] ??
+              status
             }
           />
         </div>
@@ -66,10 +75,17 @@ export function EventCard({
             )}
           </div>
           <div className="event-card-footer">
-            <time dateTime={shanghaiDateValue(event.startTime)}>
-              {formatEventDate(event.startTime)}
-            </time>
-            <span>
+            <div className="event-card-times">
+              <time dateTime={event.startTime.toISOString()}>
+                活动 {formatEventMoment(event.startTime)}
+              </time>
+              {event.signupDeadline ? (
+                <time dateTime={event.signupDeadline.toISOString()}>
+                  报名截止 {formatEventMoment(event.signupDeadline)}
+                </time>
+              ) : null}
+            </div>
+            <span className="event-card-count">
               {event.registrations?.length ?? 0} / {event.maxParticipants} 人
             </span>
           </div>

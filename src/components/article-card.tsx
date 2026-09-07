@@ -13,6 +13,7 @@ export function ArticleCard({
     excerpt: string;
     coverUrl: string;
     publishedAt: Date | null;
+    pinned?: boolean;
     author: { profile: { displayName: string } | null };
   };
   variant?: "default" | "featured" | "compact";
@@ -45,6 +46,7 @@ export function ArticleCard({
             <p className="article-card-excerpt">{article.excerpt}</p>
           ) : null}
           <p className="article-meta">
+            {article.pinned ? <span className="article-pin">置顶</span> : null}
             <time dateTime={article.publishedAt?.toISOString()}>
               {articleDate(article.publishedAt)}
             </time>

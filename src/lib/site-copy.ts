@@ -4,6 +4,9 @@ export type CopyField = {
   label: string;
   defaultValue: string;
   required: boolean;
+  /** 用多行输入框编辑，空行分段。 */
+  multiline?: boolean;
+  description?: string;
 };
 export const copyFields: CopyField[] = [
   {
@@ -41,6 +44,15 @@ export const copyFields: CopyField[] = [
     label: "首页顶部标语",
     defaultValue: "上海交大 · 守望先锋玩家社区",
     required: false,
+  },
+  {
+    key: "home.title",
+    group: "首页介绍",
+    label: "首页主标题",
+    defaultValue: "交大集结，\n\n一起守望。",
+    required: true,
+    multiline: true,
+    description: "空一行表示换行显示；不空行就是同一行。",
   },
   {
     key: "home.title1",
@@ -85,6 +97,10 @@ const retiredCopyKeys = new Set([
   "brand.subtitle",
   "home.eyebrow",
   "footer.text",
+  // 主标题原本拆成两行两个字段，现在合并成一个多行输入框。
+  // 保留在 copyFields 里，旧配置里的值才不会被判成无效设置项。
+  "home.title1",
+  "home.title2",
 ]);
 export const editableCopyFields = copyFields.filter(
   (field) => !retiredCopyKeys.has(field.key),

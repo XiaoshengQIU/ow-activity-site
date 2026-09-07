@@ -281,12 +281,23 @@
   }
   .event-card-footer {
     display: flex;
-    align-items: center;
+    align-items: end;
     justify-content: space-between;
-    gap: 8px;
+    gap: 8px 12px;
     flex-wrap: wrap;
     font-size: var(--text-sm);
     color: var(--muted);
+  }
+  /* 活动时间和报名截止各占一行，都精确到分。 */
+  .event-card-times {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+    font-variant-numeric: tabular-nums;
+  }
+  .event-card-count {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
   }
   .directory-toolbar {
     display: flex;

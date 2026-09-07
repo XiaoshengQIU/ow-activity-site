@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { ArticleRichEditor } from "@/components/article-rich-editor";
 import { ArticleContent } from "@/components/article-content";
+import { Checkbox } from "@heroui/react";
 import { InputField, Notice, TextAreaField } from "@/components/ui";
 import {
   articleEditorState,
@@ -77,6 +78,7 @@ export function ArticleEditor({
   initial,
   initialRevision,
   initialStatus,
+  initialPinned = false,
   initialUpdatedAt = null,
   initialPublishedAt = null,
 }: {
@@ -85,6 +87,7 @@ export function ArticleEditor({
   initial: ArticleDraft;
   initialRevision: number;
   initialStatus: "DRAFT" | "PUBLISHED";
+  initialPinned?: boolean;
   initialUpdatedAt?: string | null;
   initialPublishedAt?: string | null;
 }) {
@@ -94,6 +97,8 @@ export function ArticleEditor({
   const [revision, setRevision] = useState(initialRevision);
   const [editingRevision, setEditingRevision] = useState(initialRevision);
   const [status, setStatus] = useState(initialStatus);
+  const [pinned, setPinned] = useState(initialPinned);
+  const [savedPinned, setSavedPinned] = useState(initialPinned);
   const [updatedAt, setUpdatedAt] = useState(initialUpdatedAt);
   const [publishedAt, setPublishedAt] = useState(initialPublishedAt);
   const [saved, setSaved] = useState(JSON.stringify(initial));
@@ -306,7 +311,7 @@ export function ArticleEditor({
     if (
       blocked ||
       mutationLock.current ||
-      (revision > 0 && !dirty && nextStatus === status)
+      (revision > 0 && !dirty && nextStatus === status && pinned === savedPinned)
     )
       return;
     mutationLock.current = true;
@@ -317,6 +322,7 @@ export function ArticleEditor({
     data.set("id", id);
     data.set("revision", String(editingRevision));
     data.set("status", nextStatus);
+    data.set("pinned", String(pinned));
     data.set("editorUserId", adminId);
     startTransition(async () => {
       try {
@@ -331,6 +337,7 @@ export function ArticleEditor({
           setRevision(response.revision);
           setEditingRevision(response.revision);
           setStatus(response.status);
+          setSavedPinned(pinned);
           setDraft(response.article);
           setSaved(JSON.stringify(response.article));
           setUpdatedAt(response.updatedAt ?? null);
@@ -809,6 +816,25 @@ export function ArticleEditor({
               description="最多 300 字；留空时自动提取正文。"
               onChange={(event) => update("excerpt", event.target.value)}
             />
+            <div className="mt-4">
+              <Checkbox
+                name="pinned"
+                value="on"
+                isSelected={pinned}
+                isDisabled={blocked}
+                onChange={setPinned}
+              >
+                <Checkbox.Content>
+                  <Checkbox.Control>
+                    <Checkbox.Indicator />
+                  </Checkbox.Control>
+                  置顶这篇文章
+                </Checkbox.Content>
+              </Checkbox>
+              <p className="mt-2 text-sm text-muted">
+                置顶的文章排在列表和首页最前；多篇置顶之间仍按发布时间排序。
+              </p>
+            </div>
           </div>
         </details>
       </div>

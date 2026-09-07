@@ -35,6 +35,7 @@ export default async function EditArticlePage({
         }}
         initialRevision={article.revision}
         initialStatus={article.status}
+        initialPinned={article.pinned}
         initialUpdatedAt={article.updatedAt.toISOString()}
         initialPublishedAt={article.publishedAt?.toISOString() ?? null}
       />

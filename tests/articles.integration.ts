@@ -55,6 +55,7 @@ test("文章权限、草稿隔离、发布撤回、并发覆盖保护与删除",
       coverUrl: "",
       content: "## 当天回顾\n\n第一段内容。",
       status: "DRAFT",
+      pinned: false,
     };
     for (const actor of [
       null,

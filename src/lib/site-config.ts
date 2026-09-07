@@ -42,6 +42,38 @@ export const defaultSiteConfiguration: SiteConfiguration = {
   accent: "#bb273b",
 };
 const fieldMap = new Map(copyFields.map((field) => [field.key, field]));
+/**
+ * 首页主标题按空行分段：段与段之间换行显示，段内保持一行。
+ * 旧配置把标题拆成 home.title1 / home.title2 两个字段，这里合并回来，
+ * 管理员改过的文案不会因为字段调整而丢失。
+ */
+export function homeTitleLines(configuration: SiteConfiguration): string[] {
+  const t = createSiteText(configuration);
+  const merged = configuration.texts["home.title"];
+  const source =
+    merged !== undefined
+      ? merged
+      : [
+          configuration.texts["home.title1"],
+          configuration.texts["home.title2"],
+        ].some((value) => value !== undefined)
+        ? [
+            configuration.texts["home.title1"] ?? "",
+            configuration.texts["home.title2"] ?? "",
+          ]
+            .filter(Boolean)
+            .join("\n\n")
+        : t("home.title");
+  const split = (value: string) =>
+    value
+      .split(/\n\s*\n/)
+      .map((line) => line.replace(/\s*\n\s*/g, " ").trim())
+      .filter(Boolean);
+  const lines = split(source);
+  // 必填校验挡得住空标题，真出现空值时回落到默认文案而不是渲染一行空白。
+  return lines.length ? lines : split(fieldMap.get("home.title")!.defaultValue);
+}
+
 export function createSiteText(configuration: SiteConfiguration) {
   return (key: string): string =>
     configuration.texts[key] ?? fieldMap.get(key)?.defaultValue ?? key;

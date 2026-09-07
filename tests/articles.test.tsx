@@ -169,3 +169,22 @@ test("常用 Markdown 经富文本解析导出后保留标题、中文、表格�
   assert.match(html, /type="checkbox"/);
   assert.match(html, /<strong>中文加粗<\/strong>/);
 });
+
+test("文章输入接受表单字符串和布尔两种置顶写法，缺省为不置顶", () => {
+  const base = {
+    id: "a123456789012345678901",
+    revision: 0,
+    title: "标题",
+    excerpt: "",
+    coverUrl: "",
+    content: "正文",
+    status: "DRAFT" as const,
+  };
+  // 表单提交过来是字符串
+  assert.equal(articleInputSchema.parse({ ...base, pinned: "true" }).pinned, true);
+  assert.equal(articleInputSchema.parse({ ...base, pinned: "false" }).pinned, false);
+  // 服务端直接传布尔
+  assert.equal(articleInputSchema.parse({ ...base, pinned: true }).pinned, true);
+  // 老调用点不传这个字段
+  assert.equal(articleInputSchema.parse(base).pinned, false);
+});

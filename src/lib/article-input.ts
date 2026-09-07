@@ -43,6 +43,11 @@ export const articleInputSchema = articleIdentitySchema
       ),
     content: z.string().max(MAX_ARTICLE_LENGTH, "正文最多 10 万字符。"),
     status: z.enum(["DRAFT", "PUBLISHED"]),
+    // 表单提交过来是字符串，服务端调用直接传布尔。
+    pinned: z
+      .union([z.boolean(), z.literal("true"), z.literal("false")])
+      .default(false)
+      .transform((value) => value === true || value === "true"),
   })
   .refine(
     (value) => value.status !== "PUBLISHED" || value.content.trim().length > 0,

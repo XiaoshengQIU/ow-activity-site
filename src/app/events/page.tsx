@@ -6,12 +6,14 @@ import { EmptyState, PageHeading } from "@/components/page-heading";
 import { Button, ButtonLink, InputField } from "@/components/ui";
 import { getPublicEvents } from "@/lib/data";
 import { eventTypeLabel } from "@/lib/format";
+import { scheduledEventStatus } from "@/lib/event-date";
 
 export const dynamic = "force-dynamic";
 const filters = [
   { id: "all", label: "全部活动" },
   { id: "OPEN", label: "报名中" },
   { id: "RUNNING", label: "进行中" },
+  { id: "CLOSED", label: "已截止" },
   { id: "FINISHED", label: "已结束" },
 ];
 export default async function EventsPage({
@@ -27,13 +29,20 @@ export default async function EventsPage({
     ? query.status!
     : "all";
   const q = typeof query.q === "string" ? query.q.trim().slice(0, 100) : "";
+  // CLOSED 原本不在这张表里，落到默认值后排在 CANCELLED 之后，
+  // 于是"报名已截止但还没开始"的活动被挤到已结束的旧活动下面。
   const order: Record<string, number> = {
     RUNNING: 0,
     OPEN: 1,
-    FINISHED: 2,
-    CANCELLED: 3,
+    CLOSED: 2,
+    FINISHED: 3,
+    CANCELLED: 4,
   };
+  const isPast = (value: string) =>
+    value === "FINISHED" || value === "CANCELLED";
+  // 状态按当前时间当场判断，不依赖同步任务是否跑过。
   const events = allEvents
+    .map((event) => ({ ...event, status: scheduledEventStatus(event) }))
     .filter(
       (event) =>
         (status === "all" || event.status === status) &&
@@ -44,8 +53,9 @@ export default async function EventsPage({
     )
     .sort(
       (a, b) =>
-        (order[a.status] ?? 4) - (order[b.status] ?? 4) ||
-        (a.status === "FINISHED"
+        (order[a.status] ?? 5) - (order[b.status] ?? 5) ||
+        // 未开始的按时间正序，已过去的按时间倒序，都是先近后远。
+        (isPast(a.status)
           ? b.startTime.getTime() - a.startTime.getTime()
           : a.startTime.getTime() - b.startTime.getTime()),
     );

@@ -76,6 +76,7 @@ export const demoArticles = [
     excerpt:
       "按报名位置先补齐坦克和支援，再用最近三次内战的胜负做微调。规则公开，随时可以质疑。",
     coverUrl: "",
+    pinned: true,
     publishedAt: new Date(today.getTime() - DAY_MS * 2),
     author: { profile: { displayName: "社区编辑" } },
   },
@@ -85,6 +86,7 @@ export const demoArticles = [
     excerpt:
       "补全资料、能开语音、准时到场，这三件事就够了。段位不影响报名，我们更在意稳定出勤。",
     coverUrl: "",
+    pinned: false,
     publishedAt: new Date(today.getTime() - DAY_MS * 9),
     author: { profile: { displayName: "晨星" } },
   },
@@ -94,6 +96,7 @@ export const demoArticles = [
     excerpt:
       "末段守点的双重装组合出人意料地成立，也暴露了我们在开团时机上的老问题。",
     coverUrl: "",
+    pinned: false,
     publishedAt: new Date(today.getTime() - DAY_MS * 16),
     author: { profile: { displayName: "回声轨道" } },
   },

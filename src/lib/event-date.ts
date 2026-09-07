@@ -53,6 +53,19 @@ export function scheduledEventStatus(
   return "OPEN";
 }
 
+/** 日期加时刻，精确到分，不带星期。报名截止和活动时间都用它。 */
+export function formatEventMoment(date: Date) {
+  return new Intl.DateTimeFormat("zh-CN", {
+    timeZone: SHANGHAI_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(date);
+}
+
 export function formatEventDate(date: Date) {
   return new Intl.DateTimeFormat("zh-CN", {
     timeZone: SHANGHAI_TIME_ZONE,

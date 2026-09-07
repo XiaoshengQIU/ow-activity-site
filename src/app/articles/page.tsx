@@ -45,7 +45,8 @@ export default async function ArticlesPage({
         prisma.article.count({ where }),
         prisma.article.findMany({
           where,
-          orderBy: [{ publishedAt: "desc" }, { id: "desc" }],
+          // 置顶排最前，其余仍按发布时间倒序。
+          orderBy: [{ pinned: "desc" }, { publishedAt: "desc" }, { id: "desc" }],
           skip: (requestedPage - 1) * 12,
           take: 12,
           select: articleCardSelect,

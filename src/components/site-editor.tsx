@@ -74,6 +74,7 @@ export function SiteEditor({
       .filter((field) => field.group === group)
       .map((field) => {
         const multiline =
+          field.multiline ||
           field.key.endsWith("Description") ||
           field.key.endsWith("description");
         const Field = multiline ? TextAreaField : InputField;
@@ -81,6 +82,7 @@ export function SiteEditor({
           <div key={field.key} className={multiline ? "sm:col-span-2" : ""}>
             <Field
               label={field.label}
+              description={field.description}
               value={draft.texts[field.key] ?? field.defaultValue}
               required={field.required}
               disabled={busy}
@@ -159,7 +161,7 @@ export function SiteEditor({
           </Accordion.Heading>
           <Accordion.Panel>
             <Accordion.Body className="grid gap-6 md:grid-cols-2">
-              {imageSettings(["hero", "event"])}
+              {imageSettings(["event"])}
             </Accordion.Body>
           </Accordion.Panel>
         </Accordion.Item>

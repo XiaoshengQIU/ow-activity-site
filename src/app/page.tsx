@@ -8,7 +8,7 @@ import { getLatestArticles } from "@/lib/articles-data";
 import { isAdminSetupOpen } from "@/lib/auth";
 import { getHomeData } from "@/lib/data";
 import { getSiteSettings } from "@/lib/site-settings";
-import { createSiteText } from "@/lib/site-config";
+import { createSiteText, homeTitleLines } from "@/lib/site-config";
 
 export const dynamic = "force-dynamic";
 
@@ -124,30 +124,21 @@ export default async function Home() {
   // 根布局已经取过一次，React cache 让这里不再产生查询。
   const { configuration } = await getSiteSettings();
   const t = createSiteText(configuration);
-  const customImage =
-    configuration.images.hero &&
-    !["/arena-v2.webp", "/arena-cover.png"].includes(configuration.images.hero)
-      ? configuration.images.hero
-      : "";
+  const titleLines = homeTitleLines(configuration);
   return (
     <main className="page-shell community-home">
       <section className="home-intro" aria-labelledby="welcome-title">
         <div className="home-intro-copy">
-          <p className="home-eyebrow">上海交大 · 守望先锋玩家社区</p>
           <h1 id="welcome-title">
-            <span>{t("home.title1")}</span>
-            <span>{t("home.title2")}</span>
+            {titleLines.map((line) => (
+              <span key={line}>{line}</span>
+            ))}
           </h1>
           <p className="home-description">{t("home.description")}</p>
         </div>
-        {customImage ? (
-          // eslint-disable-next-line @next/next/no-img-element -- 管理员设置的首页配图
-          <img className="home-custom-image" src={customImage} alt="社区配图" />
-        ) : (
-          <ButtonLink href="/events" className="home-join">
-            查看活动
-          </ButtonLink>
-        )}
+        <ButtonLink href="/events" className="home-join">
+          查看活动
+        </ButtonLink>
       </section>
       <Suspense fallback={null}>
         <HomeNotices />
